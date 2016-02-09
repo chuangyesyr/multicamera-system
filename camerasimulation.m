@@ -632,6 +632,8 @@ FOVAngle = FOVAngle/180*pi;
 FOVlen = 0.5;
 ObjectSize = 0.03;
 ObstacleSize_S = 0.05;
+speed = 10*0.0001;
+obj_speed = 0.0001*2;
 
 handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
 camera_parameters = handles.coordinates_camera;
@@ -830,13 +832,16 @@ switch Trajectory                                                               
 end
 handles.coordinates_Mcamera1 = handles.coordinates_Mcamera;
         for i = 1:nMC                 % moving y+ axis
-            if mod(i,2) == 1
-                x1(i,:) = handles.coordinates_Mcamera1(1,i) + t*0;
-                y1(i,:) = handles.coordinates_Mcamera1(2,i) - 1*t*2;
-            else
-                x1(i,:) = handles.coordinates_Mcamera1(1,i) + t*0;
-                y1(i,:) = handles.coordinates_Mcamera1(2,i) + 1*t*2;
-            end
+%             if mod(i,2) == 1
+%                 x1(i,:) = handles.coordinates_Mcamera1(1,i) + t*0;
+%                 y1(i,:) = handles.coordinates_Mcamera1(2,i) - 1*t*2;
+%             else
+%                 x1(i,:) = handles.coordinates_Mcamera1(1,i) + t*0;
+%                 y1(i,:) = handles.coordinates_Mcamera1(2,i) + 1*t*2;
+%             end
+            
+            x1(i, :) = handles.coordinates_Mcamera1(1,i) + t*0;
+            y1(i, :) = handles.coordinates_Mcamera1(2,i) + t*0;
 
             theta = linspace((handles.coordinates_Mcamera1(3, i) - handles.coordinates_Mcamera1(4, i)/2), ...
                 (handles.coordinates_Mcamera1(3, i) + handles.coordinates_Mcamera1(4, i)/2), 100);
@@ -945,9 +950,18 @@ Energy_cons = [0.002, 0.002, 0.002, 0.002];                              % Unit 
 Diff_Angle_Temp = zeros(nC, nO);
 Distance_Temp = ones(nC, nO)*0.5;
 
-Angle_Thr = pi/6*(5/6);
-Distance_Thr = 0.5*(0.8);
+% Angle_Thr = pi/6*(5/6);
+% Distance_Thr = 0.5*(0.8);
+
+Angle_Thr = pi/6*(1/10);
+Distance_Thr = 0.5*(0.3);
+
 flag7_pr = 0;
+idlecam_assigned = zeros(nMC, 1);
+Mc_assign = zeros(nMC, nO);
+
+factor_speed = 0.005;
+
 for j = 2:length(t)
     Table3(1) = Table3(1) + 1;
     handles.count_com_overall(Table3(1)) = 0;
@@ -957,28 +971,28 @@ for j = 2:length(t)
     end
     
     % Trajectories of mobile cameras
-    for i = 1:nMC
-        handles.coordinates_Mcamera(1, i) = x1(i, j);
-        handles.coordinates_Mcamera(2, i) = y1(i, j);
-        theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
-                (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
-        x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
-        y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
-        set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
-        
-            
-        aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
-        aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
-        aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
-        aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
-        set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
-        set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
-        
-        set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
-        
-    end
+%     for i = 1:nMC
+%         handles.coordinates_Mcamera(1, i) = x1(i, j);
+%         handles.coordinates_Mcamera(2, i) = y1(i, j);
+%         theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
+%                 (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
+%         x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
+%         y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
+%         set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
+%         
+%             
+%         aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+%         aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+%         aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+%         aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+%         set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
+%         set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
+%         
+%         set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
+%         
+%     end
     
-    drawnow;
+%     drawnow;
     handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
     trigger = 0;
     
@@ -1126,7 +1140,7 @@ for j = 2:length(t)
     Distance_D = zeros(nSC, nO);
     Angle_Trend = zeros(nSC, nO);
     Distance_Trend = zeros(nSC, nO);
-    if (j > 2)                                                          % flag 7 trigger
+    if (j > 2)                                                          % flag 7 trigger (An objcet is moving out from FOV of the static tracking camera)
         Table_Tracking = handles.Table2(1:nC, 1:nO);
         Table_Seeing = Table4(1:nC, 1:nO);
         index_occupy = sum(Table_Tracking(nSC+1:nSC+nMC, :), 2);
@@ -1156,13 +1170,18 @@ for j = 2:length(t)
         
         Final_Decision = Angle_Decision + Distance_Decision;
         Final_Decision(Final_Decision > 1) = 1;
+        s_Mc_assign = sum(Mc_assign, 1);
+        s_F = sum(Final_Decision, 1);
+        s_F(s_F > 1) = 1;
+        FF_D = find(s_F - s_Mc_assign > 0, 1);
         
-        if (sum(index_occupy) < nMC && sum(sum(Final_Decision)) > 0 && flag7_pr == 0)
+        
+        if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
+            situation_Mcam = index_occupy + idlecam_assigned;
+            index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
+            index_idle_cam = find(situation_Mcam == 0);                     % The index of the idle mobile cameras
             flag7 = 1;
-            flag7_pr = 1;
-        end
-            
-        
+        end    
     end
     
     Diff_Angle_Temp = Angles_Diff1;
@@ -1249,7 +1268,8 @@ for j = 2:length(t)
                 Table_other  = Table1_1 - Table_message;
                 % Then request information from current table1
             elseif (flag7 == 1)
-                
+                Table_message = handles.Table2(1:nC, 1:nO);
+                Table_other = Table1_1 - Table_message;
             else
                 Table_message = handles.Table2(1:nC, 1:nO);
                 Table_other = Table1_1 - Table_message;
@@ -1307,11 +1327,89 @@ for j = 2:length(t)
             end
         end
         
-        if (flag7 == 1)             % Release one mobile camera
-           Table_Tracking = handles.Table2(1:nC, 1:nO);
-           Table_Seeing = Table4(1:nC, 1:nO);
+        if (flag7 == 1)             % Release one mobile camera, and this mobile camera is chasing the object is moving out from FOV of the tracking camera
+            Table_Tracking = handles.Table2(1:nC, 1:nO);
+            Table_Seeing = Table4(1:nC, 1:nO);
            
+            Num_ob = length(index_ob);
+            Num_idle_cam = length(index_idle_cam);
+           
+            cor_obj = handles.coordinates_object;
+            cor_Mcam = handles.coordinates_Mcamera;
+            cor_Scam = handles.coordinates_Scamera;
             
+            index_idle_cam % index of idle cameras
+           
+            for i = 1:Num_ob
+                Num_idlecam = nMC - sum(index_occupy) - sum(idlecam_assigned);
+                i_o = index_ob(i);
+                x_o = cor_obj(1, i_o);
+                y_o = cor_obj(2, i_o);
+                
+                real_idlecam = ones(nMC, 1) - index_occupy - idlecam_assigned;
+                
+                
+                if (sum(real_idlecam) > 0)
+                    index_idle_cam1 = find(real_idlecam == 1);
+                    cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
+                    cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
+                    dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
+                    idlecam_chosen = dis_obj_idlecam == min(dis_obj_idlecam);
+                    idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the smallest distance is chosen
+                    idlecam_assigned(idlecam_index, 1) = 1;
+                    
+                    Mc_assign(idlecam_index, i_o) = 1;
+                    
+                    y_d = (y_o-cor_idlecam(2, idlecam_chosen));
+                    x_d = (x_o-cor_idlecam(1, idlecam_chosen));
+                
+                    s_x = x_d < 0;
+                
+                    direction(idlecam_index) = mod(atan(y_d/x_d) + pi*s_x, 2*pi);
+                end
+            end           
+        end
+        
+        for i = 1:nMC
+            obj_tracked = find(Table_Tracking(i+nSC, :) == 1);
+                       
+            if (~isempty(obj_tracked))
+                x_d1 = x1(i, j-1) - x(obj_tracked, j-1);
+                y_d1 = y1(i, j-1) - y(obj_tracked, j-1);
+                dist = sqrt(x_d1^2+y_d1^2);
+                s_x1 = x_d1 < 0;
+                dire = mod(atan(y_d1/x_d1) + pi*s_x1, 2*pi);
+                speed1 = max((dist - 1/2*FOVlen)*factor_speed + obj_speed, 0);               
+                x1(i, j) = x1(i, j-1) + speed1 * cos(dire);
+                y1(i, j) = y1(i, j-1) + speed1 * sin(dire);
+            elseif (idlecam_assigned(i, 1) == 1)   
+                x1(i, j) = x1(i, j-1) + speed * cos(direction(i));
+                y1(i, j) = y1(i, j-1) + speed * sin(direction(i));
+            else
+                x1(i, j) = x1(i, j-1);
+                y1(i, j) = y1(i, j-1);
+            end
+                
+            handles.coordinates_Mcamera(3, i) = direction(i);
+               
+            handles.coordinates_Mcamera(1, i) = x1(i, j);
+            handles.coordinates_Mcamera(2, i) = y1(i, j);
+            theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
+                    (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
+            x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
+            y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
+            set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
+        
+            
+            aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+            aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+            aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+            aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+            set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
+            set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
+        
+            set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
+                    
         end
         
         %         disp('count_send_list');
