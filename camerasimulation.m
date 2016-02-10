@@ -563,7 +563,7 @@ Filename = get(handles.Filename,'String');
 % end
 
 % default set up
-Trajectory = 6;
+Trajectory = 1;
 W_E = 0.4;
 W_R = 0.4;
 W_L = 0.2;
@@ -572,6 +572,8 @@ Updating_Method = 4;
 InitialE = 1;
 Trigger = 0;
 Method_ethr = 1;
+
+
 
 try
     global Scamera_parameters;
@@ -634,6 +636,10 @@ ObjectSize = 0.03;
 ObstacleSize_S = 0.05;
 speed = 10*0.0001;
 obj_speed = 0.0001*2;
+x_min = 0.1;
+x_max = 1.9;
+y_min = 0.1;
+y_max = 1.9;
 
 handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
 camera_parameters = handles.coordinates_camera;
@@ -727,14 +733,17 @@ Weights = repmat(zeros(1, 3), nO, 1);
 
 handles.energy = Initial_Energy;
 
+if (nO > 0)
+    delete(handles.hObjectPlot);
+    delete(handles.text);
+end
 
-delete(handles.hObjectPlot);
-delete(handles.text);
-
-delete(handles.hCameraPlot_M);
-delete(handles.hLine1_M);
-delete(handles.hLine2_M);
-delete(handles.text_MC);
+if (nMC > 0)
+    delete(handles.hCameraPlot_M);
+    delete(handles.hLine1_M);
+    delete(handles.hLine2_M);
+    delete(handles.text_MC);
+end
 
 t = 0:0.0001:2.5;                                                               % Time setting
 axislimits = [0 2 0 2];
@@ -747,89 +756,99 @@ step = 1.4/length(t);
 Time_Period = 1;
 
 
-switch Trajectory                                                               % Trajectory definition
-    case 1
-        for i = 1:nO                                                                  % moving x+ axis
-            x(i,:) = handles.coordinates_object(1,i) + 1*t*2 - ObjectSize/2;
-            y(i,:) = handles.coordinates_object(2,i) + t*0 - ObjectSize/2;
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-    case 2                                                                             % Moving circle
-        for i = 1:nO
-            x(i,:) = step*t*10000 + radius*cos(-pi/2 + t*100) + handles.coordinates_object(1,i) - ObjectSize/2;
-            y(i,:) = radius + radius*sin(-pi/2 + t*100) + handles.coordinates_object(2,i) - ObjectSize/2;
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-    case 3
-        for i = 1:nO
-            x(i, :) = handles.coordinates_object(1,i) + (0.01-abs(mod(t, 0.02)-0.01))*10 - ObjectSize/2;
-            y(i, :) = handles.coordinates_object(2,i) +  t*0 - ObjectSize/2;
-            
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-    case 4                                                                         % Fixed circle
-        Center = mean(camera_parameters(1:2, :), 2);
-        rads = sqrt(sum((handles.coordinates_object - repmat(Center, 1, nO)).^2));
-        CC = handles.coordinates_object - repmat(Center, 1, nO);
-        CC1 = CC(1, :);
-        CC1(CC1 > 0) = 0;
-        CC1(CC1 < 0) = 1;
-        DD = CC1;
-        Angles1 = mod(atan(CC(2, :)./CC(1, :)) + pi*DD, 2*pi);
-        
-        for i = 1:nO
-            x(i, :) = rads(i)*cos(Angles1(i) + t*100) + Center(1) - ObjectSize/2;
-            y(i, :) = rads(i)*sin(Angles1(i) + t*100) + Center(2) - ObjectSize/2;
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-    case 5
-        for i = 2:nO
-            x(i, :) = handles.coordinates_object(1,i) + (0.001-abs(mod(t, 0.002)-0.001))*10 - ObjectSize/2;
-            y(i, :) = handles.coordinates_object(2,i) + t*0 - ObjectSize/2;
-            %             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            %             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        t1 = 0:0.0001:0.1999;
-        t2 = 0.2000:0.0001:0.2079;
-        t3 = 0.2080:0.0001:2.5;
-        x(1, 1:2000) = handles.coordinates_object(1,1) + (0.001-abs(mod(t1, 0.002)-0.001))*10 - ObjectSize/2;
-        y(1, 1:2000) = handles.coordinates_object(2,1) + t1*0 - ObjectSize/2;
-        x(1, 2001:2080) = x(1, 2000) - (t2-0.1999)*10 - ObjectSize/2;
-        y(1, 2001:2080) = y(1, 2000) - t2*0 - ObjectSize/2;
-        x(1, 2081:25001) = x(1, 2080) + (0.001-abs(mod((t3 - 0.2080), 0.002)-0.001))*10 - ObjectSize/2;
-        y(1, 2081:25001) = y(1, 2080) - t3*0 - ObjectSize/2;
-        for i = 1:nO
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-    case 6
-        for i = 1:nO                 % moving y+ axis
-            if mod(i,2) == 1
-                x(i,:) = handles.coordinates_object(1,i) + t*0 - ObjectSize/2;
-                y(i,:) = handles.coordinates_object(2,i) - 1*t*2 - ObjectSize/2;
-            else
-                x(i,:) = handles.coordinates_object(1,i) + t*0 - ObjectSize/2;
-                y(i,:) = handles.coordinates_object(2,i) + 1*t*2 - ObjectSize/2;
-            end
-            handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
-            handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
-        end
-        
-        
-    otherwise
-        error('Unknown trajectory');
-        disp('Unknown trajectory');
-        close('camerasimulation');
+for i = 1:nO
+    x(i, :) = zeros(1, length(t));
+    y(i, :) = zeros(1, length(t));
+    x(i, 1) = handles.coordinates_object(1,i)- ObjectSize/2;
+    y(i, 1) = handles.coordinates_object(2,i)- ObjectSize/2;
+    handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+    handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
 end
+
+% switch Trajectory                                                               % Trajectory definition
+%     case 1
+%         direction_obj = zeros(1, nO)
+%         for i = 1:nO                                                                  % moving x+ axis
+%             x(i,:) = handles.coordinates_object(1,i) + t*2*cos(direction_obj(i)) - ObjectSize/2;
+%             y(i,:) = handles.coordinates_object(2,i) + t*2*sin(direction_obj(i)) - ObjectSize/2;
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%     case 2                                                                             % Moving circle
+%         for i = 1:nO
+%             x(i,:) = step*t*10000 + radius*cos(-pi/2 + t*100) + handles.coordinates_object(1,i) - ObjectSize/2;
+%             y(i,:) = radius + radius*sin(-pi/2 + t*100) + handles.coordinates_object(2,i) - ObjectSize/2;
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%     case 3
+%         for i = 1:nO
+%             x(i, :) = handles.coordinates_object(1,i) + (0.01-abs(mod(t, 0.02)-0.01))*10 - ObjectSize/2;
+%             y(i, :) = handles.coordinates_object(2,i) +  t*0 - ObjectSize/2;
+%             
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%     case 4                                                                         % Fixed circle
+%         Center = mean(camera_parameters(1:2, :), 2);
+%         rads = sqrt(sum((handles.coordinates_object - repmat(Center, 1, nO)).^2));
+%         CC = handles.coordinates_object - repmat(Center, 1, nO);
+%         CC1 = CC(1, :);
+%         CC1(CC1 > 0) = 0;
+%         CC1(CC1 < 0) = 1;
+%         DD = CC1;
+%         Angles1 = mod(atan(CC(2, :)./CC(1, :)) + pi*DD, 2*pi);
+%         
+%         for i = 1:nO
+%             x(i, :) = rads(i)*cos(Angles1(i) + t*100) + Center(1) - ObjectSize/2;
+%             y(i, :) = rads(i)*sin(Angles1(i) + t*100) + Center(2) - ObjectSize/2;
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%     case 5
+%         for i = 2:nO
+%             x(i, :) = handles.coordinates_object(1,i) + (0.001-abs(mod(t, 0.002)-0.001))*10 - ObjectSize/2;
+%             y(i, :) = handles.coordinates_object(2,i) + t*0 - ObjectSize/2;
+%             %             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             %             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         t1 = 0:0.0001:0.1999;
+%         t2 = 0.2000:0.0001:0.2079;
+%         t3 = 0.2080:0.0001:2.5;
+%         x(1, 1:2000) = handles.coordinates_object(1,1) + (0.001-abs(mod(t1, 0.002)-0.001))*10 - ObjectSize/2;
+%         y(1, 1:2000) = handles.coordinates_object(2,1) + t1*0 - ObjectSize/2;
+%         x(1, 2001:2080) = x(1, 2000) - (t2-0.1999)*10 - ObjectSize/2;
+%         y(1, 2001:2080) = y(1, 2000) - t2*0 - ObjectSize/2;
+%         x(1, 2081:25001) = x(1, 2080) + (0.001-abs(mod((t3 - 0.2080), 0.002)-0.001))*10 - ObjectSize/2;
+%         y(1, 2081:25001) = y(1, 2080) - t3*0 - ObjectSize/2;
+%         for i = 1:nO
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%     case 6
+%         for i = 1:nO                 % moving y+ axis
+%             if mod(i,2) == 1
+%                 x(i,:) = handles.coordinates_object(1,i) + t*0 - ObjectSize/2;
+%                 y(i,:) = handles.coordinates_object(2,i) - 1*t*2 - ObjectSize/2;
+%             else
+%                 x(i,:) = handles.coordinates_object(1,i) + t*0 - ObjectSize/2;
+%                 y(i,:) = handles.coordinates_object(2,i) + 1*t*2 - ObjectSize/2;
+%             end
+%             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+%             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+%         end
+%         
+%         
+%     otherwise
+%         error('Unknown trajectory');
+%         disp('Unknown trajectory');
+%         close('camerasimulation');
+% end
 handles.coordinates_Mcamera1 = handles.coordinates_Mcamera;
         for i = 1:nMC                 % moving y+ axis
 %             if mod(i,2) == 1
@@ -964,11 +983,89 @@ factor_speed = 0.005;
 
 for j = 2:length(t)
     Table3(1) = Table3(1) + 1;
-    handles.count_com_overall(Table3(1)) = 0;
-    for i = 1:nO                                                         % Draw dynamic predefined trajectories
-        set(handles.line_handle(i), 'Position', [x(i,j), y(i,j), ObjectSize, ObjectSize]);
-        set(handles.text_handle(i), 'Position', [x(i,j), y(i,j)], 'string', handles.str{i});
-    end
+    handles.count_com_overall(Table3(1)) = 0;                                                  % Draw dynamic predefined trajectories
+        
+    switch Trajectory                                                               % Trajectory definition
+        case 1
+            direction_obj = zeros(1, nO);                                       % initial directions of all objects
+            for i = 1:nO                                                                  % moving x+ axis
+                x(i,j) = x(i,j-1) + obj_speed*2*cos(direction_obj(i));
+                y(i,j) = y(i,j-1) + obj_speed*2*sin(direction_obj(i));
+                if (x(i, j) > x_max || x(i, j) < x_min)
+                    direction_obj(i) = mod(pi-direction_obj(i), 2*pi);
+                elseif (y(i, j) > y_max || y(i, j) < y_min)
+                    direction_obj(i) = mod(2*pi-direction_obj(i), 2*pi);
+                end               
+%                 handles.text_handle(i) = text(x(i,j), y(i,j), handles.str{i});
+%                 handles.line_handle(i) = rectangle('Position', [x(i,j) , y(i,j) , ObjectSize, ObjectSize]);
+                set(handles.text_handle(i), 'Position', [x(i,j), y(i,j)], 'string', handles.str{i});
+                set(handles.line_handle(i), 'Position', [x(i,j), y(i,j), ObjectSize, ObjectSize]);
+            end
+        
+        case 2                                                                             % Moving circle
+            for i = 1:nO
+                x(i,:) = step*t*10000 + radius*cos(-pi/2 + t*100) + handles.coordinates_object(1,i) - ObjectSize/2;
+                y(i,:) = radius + radius*sin(-pi/2 + t*100) + handles.coordinates_object(2,i) - ObjectSize/2;
+                handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+                handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+            end
+        
+        case 3
+            for i = 1:nO
+                x(i, :) = handles.coordinates_object(1,i) + (0.01-abs(mod(t, 0.02)-0.01))*10 - ObjectSize/2;
+                y(i, :) = handles.coordinates_object(2,i) +  t*0 - ObjectSize/2;
+            
+                handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+                handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+            end
+        
+        case 4                                                                         % Fixed circle
+            Center = mean(camera_parameters(1:2, :), 2);
+            rads = sqrt(sum((handles.coordinates_object - repmat(Center, 1, nO)).^2));
+            CC = handles.coordinates_object - repmat(Center, 1, nO);
+            CC1 = CC(1, :);
+            CC1(CC1 > 0) = 0;
+            CC1(CC1 < 0) = 1;
+            DD = CC1;
+            Angles1 = mod(atan(CC(2, :)./CC(1, :)) + pi*DD, 2*pi);
+        
+            for i = 1:nO
+                x(i, :) = rads(i)*cos(Angles1(i) + t*100) + Center(1) - ObjectSize/2;
+                y(i, :) = rads(i)*sin(Angles1(i) + t*100) + Center(2) - ObjectSize/2;
+                handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+                handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+            end
+        
+        case 5
+            for i = 2:nO
+                x(i, :) = handles.coordinates_object(1,i) + (0.001-abs(mod(t, 0.002)-0.001))*10 - ObjectSize/2;
+                y(i, :) = handles.coordinates_object(2,i) + t*0 - ObjectSize/2;
+            %             handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+            %             handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+            end
+            t1 = 0:0.0001:0.1999;
+            t2 = 0.2000:0.0001:0.2079;
+            t3 = 0.2080:0.0001:2.5;
+            x(1, 1:2000) = handles.coordinates_object(1,1) + (0.001-abs(mod(t1, 0.002)-0.001))*10 - ObjectSize/2;
+            y(1, 1:2000) = handles.coordinates_object(2,1) + t1*0 - ObjectSize/2;
+            x(1, 2001:2080) = x(1, 2000) - (t2-0.1999)*10 - ObjectSize/2;
+            y(1, 2001:2080) = y(1, 2000) - t2*0 - ObjectSize/2;
+            x(1, 2081:25001) = x(1, 2080) + (0.001-abs(mod((t3 - 0.2080), 0.002)-0.001))*10 - ObjectSize/2;
+            y(1, 2081:25001) = y(1, 2080) - t3*0 - ObjectSize/2;
+            for i = 1:nO
+                handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
+                handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
+            end
+        
+        otherwise
+            error('Unknown trajectory');
+            disp('Unknown trajectory');
+            close('camerasimulation');
+   end
+        
+        
+        
+
     
     % Trajectories of mobile cameras
 %     for i = 1:nMC
@@ -1370,47 +1467,7 @@ for j = 2:length(t)
             end           
         end
         
-        for i = 1:nMC
-            obj_tracked = find(Table_Tracking(i+nSC, :) == 1);
-                       
-            if (~isempty(obj_tracked))
-                x_d1 = x1(i, j-1) - x(obj_tracked, j-1);
-                y_d1 = y1(i, j-1) - y(obj_tracked, j-1);
-                dist = sqrt(x_d1^2+y_d1^2);
-                s_x1 = x_d1 < 0;
-                dire = mod(atan(y_d1/x_d1) + pi*s_x1, 2*pi);
-                speed1 = max((dist - 1/2*FOVlen)*factor_speed + obj_speed, 0);               
-                x1(i, j) = x1(i, j-1) + speed1 * cos(dire);
-                y1(i, j) = y1(i, j-1) + speed1 * sin(dire);
-            elseif (idlecam_assigned(i, 1) == 1)   
-                x1(i, j) = x1(i, j-1) + speed * cos(direction(i));
-                y1(i, j) = y1(i, j-1) + speed * sin(direction(i));
-            else
-                x1(i, j) = x1(i, j-1);
-                y1(i, j) = y1(i, j-1);
-            end
-                
-            handles.coordinates_Mcamera(3, i) = direction(i);
-               
-            handles.coordinates_Mcamera(1, i) = x1(i, j);
-            handles.coordinates_Mcamera(2, i) = y1(i, j);
-            theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
-                    (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
-            x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
-            y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
-            set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
-        
-            
-            aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
-            aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
-            aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
-            aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
-            set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
-            set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
-        
-            set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
-                    
-        end
+
         
         %         disp('count_send_list');
         %         disp(count_send_list);
@@ -1742,7 +1799,74 @@ for j = 2:length(t)
         handles.Table2 = Table2;
         set(tt2, 'Data', Table2);
     end
-    
+    if (j > 2)
+        for i = 1:nMC
+            obj_tracked = find(Table_Tracking(i+nSC, :) == 1);
+                       
+            if (~isempty(obj_tracked))
+                x_d1 = x(obj_tracked, j-1) - x1(i, j-1);
+                y_d1 = y(obj_tracked, j-1) - y1(i, j-1);
+                dist = sqrt(x_d1^2+y_d1^2);
+                s_x1 = x_d1 < 0;
+                dire = mod(atan(y_d1/x_d1) + pi*s_x1, 2*pi);
+                speed1 = max((dist - 1/2*FOVlen)*factor_speed + obj_speed, 0);               
+                x1(i, j) = x1(i, j-1) + speed1 * cos(dire);
+                y1(i, j) = y1(i, j-1) + speed1 * sin(dire);
+                    
+                handles.coordinates_Mcamera(3, i) = dire;
+               
+                handles.coordinates_Mcamera(1, i) = x1(i, j);
+                handles.coordinates_Mcamera(2, i) = y1(i, j);
+                theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
+                    (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
+                x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
+                y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
+                set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
+        
+            
+                aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+                aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+                aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+                aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+                set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
+                set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
+        
+                set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
+                    
+                    
+                    
+                    
+            elseif (idlecam_assigned(i, 1) == 1)   
+                x1(i, j) = x1(i, j-1) + speed * cos(direction(i));
+                y1(i, j) = y1(i, j-1) + speed * sin(direction(i));
+                    
+                handles.coordinates_Mcamera(3, i) = direction(i);
+               
+                handles.coordinates_Mcamera(1, i) = x1(i, j);
+                handles.coordinates_Mcamera(2, i) = y1(i, j);
+                theta = linspace((handles.coordinates_Mcamera(3, i) - handles.coordinates_Mcamera(4, i)/2), ...
+                    (handles.coordinates_Mcamera(3, i) + handles.coordinates_Mcamera(4, i)/2), 100);
+                x0 = x1(i, j) + handles.coordinates_Mcamera(5, i)*cos(theta);
+                y0 = y1(i, j) + handles.coordinates_Mcamera(5, i)*sin(theta);
+                set(handles.text_handle_MC(i), 'Position', [x1(i,j)+0.01, y1(i,j)], 'string', handles.str_MC{i});
+        
+            
+                aaa1 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+                aaa2 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)+handles.coordinates_Mcamera(4, i)/2);
+                aaa3 = handles.coordinates_Mcamera(5, i)*cos(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+                aaa4 = handles.coordinates_Mcamera(5, i)*sin(handles.coordinates_Mcamera(3, i)-handles.coordinates_Mcamera(4, i)/2);
+                set(handles.hLine1_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa1], 'YData', [y1(i,j), y1(i,j)+aaa2]);
+                set(handles.hLine2_Mhandle(i), 'XData', [x1(i,j), x1(i,j)+aaa3], 'YData', [y1(i,j), y1(i,j)+aaa4]);
+        
+                set(handles.hCameraPlot_Mhandle(i), 'XData', x0, 'YData', y0);
+            else
+                x1(i, j) = x1(i, j-1);
+                y1(i, j) = y1(i, j-1);
+            end
+                
+                
+        end        
+    end
     
     set(tt3, 'Data', Table3);
     
