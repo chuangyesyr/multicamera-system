@@ -897,6 +897,7 @@ idlecam_assigned = zeros(nMC, 1);
 Mc_assign = zeros(nMC, nO);
 
 factor_speed = 0.005;
+time_tracked = zeros(1, nO);
 
 direction_obj = zeros(length(t), nO)+pi/3;
 for j = 2:length(t)
@@ -1140,7 +1141,7 @@ for j = 2:length(t)
             Utility_Resolution = beta*Utility_Angles + (1-beta)*Utility_Distance;   % Normalized resolution
             
             handles.Energy(Camera_Index1, Table3(1), k) = Utility_Energy;
-            handles.Resolution(Camera_Index1, Table3(1), k) = Utility_Resolution*TableoccRate(Camera_Index1, k);
+            handles.Resolution(Camera_Index1, Table3(1), k) = Utility_Resolution.*TableoccRate(Camera_Index1, k)';
             handles.Distance(Camera_Index1, Table3(1), k) = Utility_Distance;
             
             if (nc == 1)
@@ -1356,8 +1357,6 @@ for j = 2:length(t)
             cor_obj = handles.coordinates_object;
             cor_Mcam = handles.coordinates_Mcamera;
             cor_Scam = handles.coordinates_Scamera;
-            
-            index_idle_cam % index of idle cameras
            
             for i = 1:Num_ob
                 Num_idlecam = nMC - sum(index_occupy) - sum(idlecam_assigned);
@@ -1862,6 +1861,11 @@ for j = 2:length(t)
         handles.rate = [handles.rate; Rate_Consumption];
     end
     
+    for i = 1:nO
+        if (sum(Table2(1:nC, i)) == 1)
+            time_tracked(i) = time_tracked(i) + 1;
+        end
+    end
 end
 
 %     Probability = handles.probability;
@@ -1923,6 +1927,10 @@ save(ssname3, 'Variance');
 
 disp(Miu);
 disp(Variance);
+
+savefilename4 = './%s/time_tracked.mat';
+ssname4 = sprintf(savefilename4, Filename);
+save(ssname4, 'time_tracked');
 % for i = 1:nO
 %     be = handles.E(i, 1:Table3(2)) ~= 0;
 %     br = handles.R(i, 1:Table3(2)) ~= 0;
