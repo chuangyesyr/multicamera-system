@@ -573,8 +573,29 @@ InitialE = 1;
 Trigger = 0;
 Method_ethr = 1;
 
+Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
+repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
 
+FOVAngle = 60;                                                               % Angle of FOV
+FOVAngle = FOVAngle/180*pi;
+FOVlen = 0.5;
+ObjectSize = 0.03;
+ObstacleSize_S = 0.05;
+speed = 10*0.0001;
+obj_speed = 0.0001*2;
+x_min = 0.1;
+x_max = 1.9;
+y_min = 0.1;
+y_max = 1.9;
 
+t = 0:0.0001:2.5;                                                               % Time setting
+axislimits = [0 2 0 2];
+tau = 0.7;                                                                    % Parameter for Bargain
+N = 25;                                                                       % Times of Bargain iteration
+radius = 0.2;
+step = 1.4/length(t);
+
+Time_Period = 1;
 try
     global Scamera_parameters;
 catch
@@ -599,82 +620,130 @@ catch
     obstacle_parameters = [];
 end
 
-
-
-% load('Scamera_parameters');
-% load('Mcamera_parameters');
-% load('object_parameters');
-% load('obstacle_parameters');
-
 % Making directionary to save files
 SS = './%s';
 ss = sprintf(SS, Filename);
 mkdir(ss);
 
-savefile1 = './%s/Scamera_parameters';
-ssfile1 = sprintf(savefile1, Filename);
-save(ssfile1, 'Scamera_parameters');
-savefile2 = './%s/Mcamera_parameters';
-ssfile2 = sprintf(savefile2, Filename);
-save(ssfile2, 'Mcamera_parameters');
-savefile3 = './%s/object_parameters';
-ssfile3 = sprintf(savefile3, Filename);
-save(ssfile3, 'object_parameters');
-savefile4 = './%s/obstacle_parameters';
-ssfile4 = sprintf(savefile4, Filename);
-save(ssfile4, 'obstacle_parameters');
+if (repeat == 1)
+    load('Scamera_parameters');
+    load('Mcamera_parameters');
+    load('object_parameters');
+    load('obstacle_parameters');
+    handles.coordinates_Scamera = Scamera_parameters;
+    handles.coordinates_Mcamera = Mcamera_parameters;
+    handles.coordinates_object = object_parameters;
+    handles.coordinates_obstacle = obstacle_parameters;
 
 
-handles.coordinates_Scamera = Scamera_parameters;
-handles.coordinates_Mcamera = Mcamera_parameters;
-handles.coordinates_object = object_parameters;
-% handles.coordinates_obstacle = obstacle_parameters;
-FOVAngle = 60;                                                               % Angle of FOV
-FOVAngle = FOVAngle/180*pi;
-FOVlen = 0.5;
-ObjectSize = 0.03;
-ObstacleSize_S = 0.05;
-speed = 10*0.0001;
-obj_speed = 0.0001*2;
-x_min = 0.1;
-x_max = 1.9;
-y_min = 0.1;
-y_max = 1.9;
+    handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
+    camera_parameters = handles.coordinates_camera;
 
-handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
-camera_parameters = handles.coordinates_camera;
+    [~, nO] = size(handles.coordinates_object);                                  % The number of objects is nO
+    [~, nS] = size(handles.coordinates_obstacle);
+    [~, nC] = size(handles.coordinates_camera);                                  % The number of cameras is nC
+    [~, nMC] = size(handles.coordinates_Mcamera); 
+    [~, nSC] = size(handles.coordinates_Scamera); 
+    
+    for i = 1:nO
+        x_obj_init(i) = handles.coordinates_object(1,i)- ObjectSize/2;
+        y_obj_init(i) = handles.coordinates_object(2,i)- ObjectSize/2;
+        handles.str{i} = ['  O' num2str(i)];
+        handles.text(i) = text(x_obj_init(i), y_obj_init(i), handles.str{i});
+        handles.hObjectPlot(i) = rectangle('Position', [x_obj_init(i) , y_obj_init(i) , ObjectSize, ObjectSize]);
+    end
+    for i = 1:nS
+        x_obs(i) = obstacle_parameters(1, i);
+        y_obs(i) = obstacle_parameters(2, i);
+        str_S = ['  S' num2str(i)];
+        handles.text_S(i) = text(x_obs(i) - ObstacleSize_S, y_obs(i) - ObstacleSize_S, str_S);
+        handles.str_S{i} = str_S;
+        handles.hObstaclePlot(handles.count_obstacle) = rectangle('Position', ...
+                    [x-ObstacleSize_S/2,y-ObstacleSize_S/2,ObstacleSize_S,ObstacleSize_S], 'Facecolor', 'r');
+    end
+    for i = 1:nSC
+        x_nSC_init(i) = Scamera_parameters(1, i);
+        y_nSC_init(i) = Scamera_parameters(2, i);
+        cameraAngle = Scamera_parameters(3, i);
+        str = ['SCam ' num2str(i)];                              % text for camera
+        handles.text_SC(i) = text((x_nSC_init(i) + 0.01), y_nSC_init(i) , str);
+        handles.str_SC{i} = str;
 
-[~, nO] = size(handles.coordinates_object);                                  % The number of objects is nO
-[~, nC] = size(handles.coordinates_camera);                                  % The number of cameras is nC
-[~, nMC] = size(handles.coordinates_Mcamera); 
-[~, nSC] = size(handles.coordinates_Scamera); 
-% for count = 1:nC
-%     x1 = camera_parameters(1, count);
-%     y1 = camera_parameters(2, count);
-%     cameraAngle = camera_parameters(3, count);
-%     str = ['Cam ' num2str(count)];
-%     text((x1 + 0.01), y1 , str);
-%     handles.str_C = str;
-%     line([x1,x1 + FOVlen*cos(cameraAngle + FOVAngle/2)], ...              % FOV lines
-%         [ y1 , y1 + FOVlen*sin(cameraAngle + FOVAngle/2)], 'Color', 'b');
-%     line([x1,x1 + FOVlen*cos(cameraAngle - FOVAngle/2)], ...
-%         [ y1 , y1 + FOVlen*sin(cameraAngle - FOVAngle/2)], 'Color', 'b');
-%     hold on;
-%     theta = linspace((cameraAngle - FOVAngle/2), (cameraAngle + FOVAngle/2), 100);
-%     x0 = x1 + FOVlen*cos(theta);
-%     y0 = y1 + FOVlen*sin(theta);
-%     plot(x0, y0, 'r');
-% end
+        handles.hLine1_S(i) = line([x_nSC_init(i), x_nSC_init(i) + FOVlen*cos(cameraAngle + FOVAngle/2)], ...
+            [ y_nSC_init(i), y_nSC_init(i) + FOVlen*sin(cameraAngle + FOVAngle/2)]);
+        handles.hLine2_S(i) = line([x_nSC_init(i), x_nSC_init(i) + FOVlen*cos(cameraAngle - FOVAngle/2)], ...
+            [ y_nSC_init(i), y_nSC_init(i) + FOVlen*sin(cameraAngle - FOVAngle/2)]);
+        hold on;
+        theta = linspace((cameraAngle - FOVAngle/2), (cameraAngle + FOVAngle/2), 100);
+        x0 = x_nSC_init(i) + FOVlen*cos(theta);
+        y0 = y_nSC_init(i) + FOVlen*sin(theta);
+        handles.hCameraPlot_S(i) = plot(x0, y0, 'r');
 
-% for count = 1:nO
-%     x2 = object_parameters(1, count);
-%     y2 = object_parameters(2, count);
-%     str = ['  O' num2str(count)];
-%     handles.text(count) = text(x2 - ObjectSize/2, y2 - ObjectSize/2, str);
-%     handles.str{count} = str;
-%     handles.hObjectPlot(count) = rectangle('Position', ...
-%         [x2-ObjectSize/2,y2-ObjectSize/2,ObjectSize,ObjectSize]);
-% end
+    end
+    for i = 1:nMC
+        x_nMC_init(i) = Mcamera_parameters(1, i);
+        y_nMC_init(i) = Mcamera_parameters(2, i);
+        cameraAngle = Mcamera_parameters(3, i);
+        str = ['MCam ' num2str(i)];                              % text for camera
+        handles.text_MC(i) = text((x_nMC_init(i) + 0.01), y_nMC_init(i) , str);
+        handles.str_MC{i} = str;
+
+        handles.hLine1_M(i) = line([x_nMC_init(i), x_nMC_init(i) + FOVlen*cos(cameraAngle + FOVAngle/2)], ...
+            [ y_nMC_init(i), y_nMC_init(i) + FOVlen*sin(cameraAngle + FOVAngle/2)]);
+        handles.hLine2_M(i) = line([x_nMC_init(i), x_nMC_init(i) + FOVlen*cos(cameraAngle - FOVAngle/2)], ...
+            [ y_nMC_init(i), y_nMC_init(i) + FOVlen*sin(cameraAngle - FOVAngle/2)]);
+        hold on;
+        theta = linspace((cameraAngle - FOVAngle/2), (cameraAngle + FOVAngle/2), 100);
+        x0 = x_nMC_init(i) + FOVlen*cos(theta);
+        y0 = y_nMC_init(i) + FOVlen*sin(theta);
+        handles.hCameraPlot_M(i) = plot(x0, y0, 'r');       
+    end
+
+    
+    
+else
+    handles.coordinates_Scamera = Scamera_parameters;
+    handles.coordinates_Mcamera = Mcamera_parameters;
+    handles.coordinates_object = object_parameters;
+    handles.coordinates_obstacle = obstacle_parameters;
+
+
+    handles.coordinates_camera = [handles.coordinates_Scamera, handles.coordinates_Mcamera];
+    camera_parameters = handles.coordinates_camera;
+
+    [~, nO] = size(handles.coordinates_object);                                  % The number of objects is nO
+    [~, nC] = size(handles.coordinates_camera);                                  % The number of cameras is nC
+    [~, nMC] = size(handles.coordinates_Mcamera); 
+    [~, nSC] = size(handles.coordinates_Scamera); 
+    
+    savefile1 = './%s/Scamera_parameters';
+    ssfile1 = sprintf(savefile1, Filename);
+    save(ssfile1, 'Scamera_parameters');
+    savefile2 = './%s/Mcamera_parameters';
+    ssfile2 = sprintf(savefile2, Filename);
+    save(ssfile2, 'Mcamera_parameters');
+    savefile3 = './%s/object_parameters';
+    ssfile3 = sprintf(savefile3, Filename);
+    save(ssfile3, 'object_parameters');
+    savefile4 = './%s/obstacle_parameters';
+    ssfile4 = sprintf(savefile4, Filename);
+    save(ssfile4, 'obstacle_parameters');
+
+end
+
+if (nO > 0)
+    delete(handles.hObjectPlot);
+    delete(handles.text);
+end
+
+if (nMC > 0)
+    delete(handles.hCameraPlot_M);
+    delete(handles.hLine1_M);
+    delete(handles.hLine2_M);
+    delete(handles.text_MC);
+end
+
+
 
 Energy = 8;
 switch InitialE
@@ -733,27 +802,6 @@ Weights = repmat(zeros(1, 3), nO, 1);
 
 handles.energy = Initial_Energy;
 
-if (nO > 0)
-    delete(handles.hObjectPlot);
-    delete(handles.text);
-end
-
-if (nMC > 0)
-    delete(handles.hCameraPlot_M);
-    delete(handles.hLine1_M);
-    delete(handles.hLine2_M);
-    delete(handles.text_MC);
-end
-
-t = 0:0.0001:2.5;                                                               % Time setting
-axislimits = [0 2 0 2];
-ObjectSize = 0.03;
-tau = 0.7;                                                                    % Parameter for Bargain
-N = 25;                                                                       % Times of Bargain iteration
-radius = 0.2;
-step = 1.4/length(t);
-
-Time_Period = 1;
 
 
 for i = 1:nO
@@ -761,6 +809,7 @@ for i = 1:nO
     y(i, :) = zeros(1, length(t));
     x(i, 1) = handles.coordinates_object(1,i)- ObjectSize/2;
     y(i, 1) = handles.coordinates_object(2,i)- ObjectSize/2;
+    handles.str{i} = ['  O' num2str(i)];
     handles.text_handle(i) = text(x(i,1), y(i,1), handles.str{i});
     handles.line_handle(i) = rectangle('Position', [x(i,1) , y(i,1) , ObjectSize, ObjectSize]);
 end
@@ -788,7 +837,8 @@ for i = 1:nMC                 % moving y+ axis
     aaa2 = handles.coordinates_Mcamera1(5, i)*sin(handles.coordinates_Mcamera1(3, i)+handles.coordinates_Mcamera1(4, i)/2);
     aaa3 = handles.coordinates_Mcamera1(5, i)*cos(handles.coordinates_Mcamera1(3, i)-handles.coordinates_Mcamera1(4, i)/2);
     aaa4 = handles.coordinates_Mcamera1(5, i)*sin(handles.coordinates_Mcamera1(3, i)-handles.coordinates_Mcamera1(4, i)/2);
-            
+    
+    handles.str_MC{i} = ['MCam ' num2str(i)];        
     handles.text_handle_MC(i) = text(x1(i,1)+0.01, y1(i,1), handles.str_MC{i});
     handles.hLine1_Mhandle(i) = line([x1(i,1), x1(i,1) + aaa1], ...
         [ y1(i,1) , y1(i,1) + aaa2]);
@@ -1720,7 +1770,7 @@ for j = 2:length(t)
         handles.Table2 = Table2;
         set(tt2, 'Data', Table2);
     end
-    if (j > 2)
+    if (j > 2 && Mobile_flag == 1)
         for i = 1:nMC
             obj_tracked = find(Table_Tracking(i+nSC, :) == 1);
                        
@@ -1786,7 +1836,10 @@ for j = 2:length(t)
             end
                 
                 
-        end        
+        end
+    else
+        x1(i, j) = x1(i, j-1);
+        y1(i, j) = y1(i, j-1);
     end
     drawnow;
     set(tt3, 'Data', Table3);
