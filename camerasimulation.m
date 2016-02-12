@@ -659,7 +659,7 @@ if (repeat == 1)
         handles.text_S(i) = text(x_obs(i) - ObstacleSize_S, y_obs(i) - ObstacleSize_S, str_S);
         handles.str_S{i} = str_S;
         handles.hObstaclePlot(handles.count_obstacle) = rectangle('Position', ...
-                    [x-ObstacleSize_S/2,y-ObstacleSize_S/2,ObstacleSize_S,ObstacleSize_S], 'Facecolor', 'r');
+                    [x_obs(i)-ObstacleSize_S/2,y_obs(i)-ObstacleSize_S/2,ObstacleSize_S,ObstacleSize_S], 'Facecolor', 'r');
     end
     for i = 1:nSC
         x_nSC_init(i) = Scamera_parameters(1, i);
@@ -939,8 +939,8 @@ Distance_Temp = ones(nC, nO)*0.5;
 % Angle_Thr = pi/6*(5/6);
 % Distance_Thr = 0.5*(0.8);
 
-Angle_Thr = pi/6*(1/10);
-Distance_Thr = 0.5*(0.3);
+Angle_Thr = pi/6*(8/10);
+Distance_Thr = 0.5*(0.8);
 
 flag7_pr = 0;
 idlecam_assigned = zeros(nMC, 1);
