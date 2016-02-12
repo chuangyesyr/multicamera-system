@@ -658,7 +658,7 @@ if (repeat == 1)
         str_S = ['  S' num2str(i)];
         handles.text_S(i) = text(x_obs(i) - ObstacleSize_S, y_obs(i) - ObstacleSize_S, str_S);
         handles.str_S{i} = str_S;
-        handles.hObstaclePlot(handles.count_obstacle) = rectangle('Position', ...
+        handles.hObstaclePlot(i) = rectangle('Position', ...
                     [x_obs(i)-ObstacleSize_S/2,y_obs(i)-ObstacleSize_S/2,ObstacleSize_S,ObstacleSize_S], 'Facecolor', 'r');
     end
     for i = 1:nSC
@@ -1404,16 +1404,18 @@ for j = 2:length(t)
             Num_ob = length(index_ob);
             Num_idle_cam = length(index_idle_cam);
            
-            cor_obj = handles.coordinates_object;
-            cor_Mcam = handles.coordinates_Mcamera;
-            cor_Scam = handles.coordinates_Scamera;
+%             cor_obj = handles.coordinates_object;
+            cor_obj = [x(:, j)'; y(:, j)'];
+            cor_Mcam = [x1(:, j)'; y1(:, j)'];
+            
            
             for i = 1:Num_ob
                 Num_idlecam = nMC - sum(index_occupy) - sum(idlecam_assigned);
                 i_o = index_ob(i);
                 x_o = cor_obj(1, i_o);
                 y_o = cor_obj(2, i_o);
-                
+
+
                 real_idlecam = ones(nMC, 1) - index_occupy - idlecam_assigned;
                 
                 
@@ -1438,6 +1440,16 @@ for j = 2:length(t)
             end           
         end
         
+        
+        for i = 1:nMC
+            index_obj_assigned = find(Mc_assign(i, :) == 1);
+            if (~isempty(index_obj_assigned))
+                if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || sum(Table4(1:nSC, index_obj_assigned), 1) == 0)
+                    idlecam_assigned(i) = 0;
+                    Mc_assign(i, index_obj_assigned) = 0;
+                end
+            end
+        end
 
         
         %         disp('count_send_list');

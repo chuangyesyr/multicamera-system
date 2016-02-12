@@ -13,7 +13,7 @@ if NS ~= 0
 end
 
 Table = zeros(NC, NO);           % Row denotes Cam and Column denotes Obj
-Table_s = zeros(NC, NO);
+Table_s = zeros(NC, NS);
 TableOcc = zeros(NC,NO);
 occRate = zeros(NC, NO);
 
