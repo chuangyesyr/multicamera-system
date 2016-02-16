@@ -562,6 +562,9 @@ Filename = get(handles.Filename,'String');
 %     close('camerasimulation');
 % end
 
+
+W_MD = 0.5;     % weight for the distance between mobile camera and the object
+W_ME = 0.5;     % weight for the remaining energy of mobile camera
 % default set up
 Trajectory = 1;
 W_E = 0.4;
@@ -575,6 +578,12 @@ Method_ethr = 1;
 
 Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
 repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
+
+if (Mobile_flag == 0)
+    W_E = 0;
+    W_R = 0.5;
+    W_L = 0.5;
+end
 
 FOVAngle = 60;                                                               % Angle of FOV
 FOVAngle = FOVAngle/180*pi;
@@ -1110,6 +1119,8 @@ for j = 2:length(t)
         Table4(Cam_Low, CC) = 0;
     end
     
+    Table4_a = Table4;
+    
     Load2 = zeros(1, nC);
     N_O = sum(Table4, 1);
     Load_Num = sum(N_O ~= 0);
@@ -1215,9 +1226,10 @@ for j = 2:length(t)
         Table_Seeing = Table4(1:nC, 1:nO);
         index_occupy = sum(Table_Tracking(nSC+1:nSC+nMC, :), 2);
         index_occupy(index_occupy > 0) = 1;
+        situation_Mcam = index_occupy + idlecam_assigned;
         
         for i = 1:nO
-            if (sum(Table_Seeing(1:nSC, i)) == 1 && sum(Table_Seeing(:, i)) == 1)    % Only one static camera observe the object
+            if (sum(Table_Seeing(1:nSC, i)) == 1 && sum(Table_Seeing(:, i)) - sum(situation_Mcam) == 1)    % Only one static camera observe the object
                 index_t = Table_Tracking(:, i) == 1;
                 Angles_D(index_t, i) = Angles_Diff1(index_t, i);
                 Distance_D(index_t, i) = Distance1(index_t, i);
@@ -1247,7 +1259,7 @@ for j = 2:length(t)
         
         
         if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
-            situation_Mcam = index_occupy + idlecam_assigned;
+            
             index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
             index_idle_cam = find(situation_Mcam == 0);                     % The index of the idle mobile cameras
             flag7 = 1;
@@ -1386,8 +1398,18 @@ for j = 2:length(t)
         Load = zeros(1, nC);
         Table2(1:nC, 1:nO) = zeros(nC, nO);                                             % Table2 is the task assignment situation
         
-        for k1 = 1:nO                                                                % Give the only seen object the highest priority
+        if (Mobile_flag == 1)                             % If mobile cameras are in use, the object is always given to static camera if it is seen by both mobile camera and static camera
+            for i = 1:nO
+                if (find(Table4(1:nSC, i)) == 1)
+                    Table4(nSC+1:nC, i) = 0;
+                end
+            end
+        end
+        for k1 = 1:nO                                             % Give the only seen object the highest priority
+
             Index_only = find(Table4(:, k1) == 1);
+ 
+
             if (length(Index_only) == 1)
                 Load2(Index_only) = Load2(Index_only) + 1;
                 Table2(Index_only, k1) = 1;
@@ -1422,10 +1444,12 @@ for j = 2:length(t)
                 if (sum(real_idlecam) > 0)
                     index_idle_cam1 = find(real_idlecam == 1);
                     cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
+                    energy_idlecam = Energy_Left(nSC+index_idle_cam1);
                     cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
                     dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
-                    idlecam_chosen = dis_obj_idlecam == min(dis_obj_idlecam);
-                    idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the smallest distance is chosen
+                    utility_obj_idlecam = W_ME*energy_idlecam + W_MD*(1-dis_obj_idlecam/max(dis_obj_idlecam));           
+                    idlecam_chosen = utility_obj_idlecam == max(utility_obj_idlecam);
+                    idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the highest utility is chosen
                     idlecam_assigned(idlecam_index, 1) = 1;
                     
                     Mc_assign(idlecam_index, i_o) = 1;
@@ -1444,12 +1468,18 @@ for j = 2:length(t)
         for i = 1:nMC
             index_obj_assigned = find(Mc_assign(i, :) == 1);
             if (~isempty(index_obj_assigned))
-                if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || sum(Table4(1:nSC, index_obj_assigned), 1) == 0)
+                situ1 = Table1(nSC+1:nC, index_obj_assigned) - index_occupy - idlecam_assigned;
+                dd1 = find(situ1 > 0, 1);
+                if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || ...
+                        sum(Table4(1:nSC, index_obj_assigned), 1) == 0 || ...
+                        (sum(Table2(1:nSC, index_obj_assigned), 1) == 1 && ~isempty(dd1)) || ...
+                       Table1(i+nSC, index_obj_assigned) == 1)
                     idlecam_assigned(i) = 0;
                     Mc_assign(i, index_obj_assigned) = 0;
                 end
             end
         end
+        
 
         
         %         disp('count_send_list');
@@ -1463,7 +1493,7 @@ for j = 2:length(t)
         while (sum(Load) ~= Load_Num)
             %             disp(Load_Num);
             
-            loop = loop + 1;
+            loop = loop + 1
             
             %             if (loop > 10)
             %                 error('error');
@@ -1677,6 +1707,43 @@ for j = 2:length(t)
             Table_in = zeros(nC, nO);
         end
         
+
+        
+        if (Mobile_flag == 1)
+            for i = 1:nMC
+                index_obj_in_idle = find(Table4(nSC+i, 1:nO) == 1);
+                if (length(index_obj_in_idle) >= 2)
+                    Table2(nSC+i, 1:nO) = handles.Table2(nSC+i, 1:nO);
+                end
+            end
+ 
+            for i = 1:nO
+                index_Mcam_track = find(Table2(nSC+1:nC, i) == 1, 1);
+                if (~isempty(index_Mcam_track))
+                    idle_Mcam_left = Table4(nSC+1:nC, i)-index_occupy-idlecam_assigned;
+                    index_Mcam_see = find(idle_Mcam_left == 1);
+                    if (length(index_Mcam_see) >= 1)
+                        energy_Mcam_see = Energy_Left(nSC+index_Mcam_see);
+                        index_tracking = find(energy_Mcam_see == max(energy_Mcam_see), 1);
+                        Table2(nSC+index_Mcam_track, i) = 0;
+                        Table2(nSC+index_Mcam_see(index_tracking), i) = 1;
+                    end
+                else
+                    if (sum(Table1(1:nSC, i)) == 0)
+                        idle_Mcam_left = Table4(nSC+1:nC, i)-index_occupy-idlecam_assigned;
+                        index_Mcam_see = find(idle_Mcam_left == 1);
+                        if (length(index_Mcam_see) >= 1)
+                            energy_Mcam_see = Energy_Left(nSC+index_Mcam_see);
+                            index_tracking = find(energy_Mcam_see == max(energy_Mcam_see));
+                            Table2(nSC+index_tracking, i) = 1;
+                        end
+                    end
+                end
+            end
+        end
+        
+        
+        
         handles.count_com(Table3(2)) = sum(count_send_feature) + sum(count_send_resource) + ...
             sum(count_send_list) +  sum(count_send_load);
         %         disp(handles.count_com(Table3(2)));
@@ -1784,7 +1851,7 @@ for j = 2:length(t)
     end
     if (j > 2 && Mobile_flag == 1)
         for i = 1:nMC
-            obj_tracked = find(Table_Tracking(i+nSC, :) == 1);
+            obj_tracked = find(Table2(i+nSC, :) == 1);
                        
             if (~isempty(obj_tracked))
                 x_d1 = x(obj_tracked, j-1) - x1(i, j-1);
@@ -1850,8 +1917,10 @@ for j = 2:length(t)
                 
         end
     else
-        x1(i, j) = x1(i, j-1);
-        y1(i, j) = y1(i, j-1);
+        for i = 1:nMC
+            x1(i, j) = x1(i, j-1);
+            y1(i, j) = y1(i, j-1);
+        end
     end
     drawnow;
     set(tt3, 'Data', Table3);
@@ -1904,7 +1973,9 @@ for j = 2:length(t)
     
     a1(1:nSC) = zeros(nSC, 1);
     b1(1:nSC) = zeros(nSC, 1);
-    Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption;
+    if (Mobile_flag == 1)
+        Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption;
+    end
     %     Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption - ...
 %     Energy_cons * [count_send_feature; count_send_resource; count_send_list; count_send_load];
     Energy_Left(Energy_Left <= 0) = 0;
