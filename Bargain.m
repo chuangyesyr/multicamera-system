@@ -1,6 +1,6 @@
 % A function about bargain to guarantee convergence of Nash Equilibrium
 
-function [Pi, Camera] = Bargain(tau, Object_label, N, Cameras, Utility_O)
+function [P_i, Camera] = Bargain(tau, Object_label, N, Cameras, Utility_O)
 
 % Pi is a set of probabilities
 % tau is a small number between 0 and 1
@@ -25,11 +25,11 @@ if (nC >= 2)
         Utility_head(k+1, index) = Utility_head(k, index) + (Utility - Utility_head(k, index))/p_i(k, index);
     end
            
-    Pi = p_i(N, :);
-    Index = Pi == max(Pi);
+    P_i = p_i(N, :);
+    Index = P_i == max(P_i);
     Camera = Cameras(Index);
 else
-    Pi = 1;
+    P_i = 1;
     Camera = Cameras;
 end
 

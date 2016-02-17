@@ -577,6 +577,7 @@ Trigger = 0;
 Method_ethr = 1;
 
 Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
+E_flag = 0;                               % 0: does not take energy into account  1: take energy into account
 repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
 
 if (Mobile_flag == 0)
@@ -1398,9 +1399,9 @@ for j = 2:length(t)
         Load = zeros(1, nC);
         Table2(1:nC, 1:nO) = zeros(nC, nO);                                             % Table2 is the task assignment situation
         
-        if (Mobile_flag == 1)                             % If mobile cameras are in use, the object is always given to static camera if it is seen by both mobile camera and static camera
+        if (Mobile_flag == 1 && E_flag == 0)                             % If mobile cameras are in use, the object is always given to static camera if it is seen by both mobile camera and static camera
             for i = 1:nO
-                if (find(Table4(1:nSC, i)) == 1)
+                if (find(Table4(1:nSC, i) == 1))
                     Table4(nSC+1:nC, i) = 0;
                 end
             end
@@ -1493,7 +1494,7 @@ for j = 2:length(t)
         while (sum(Load) ~= Load_Num)
             %             disp(Load_Num);
             
-            loop = loop + 1
+            loop = loop + 1;
             
             %             if (loop > 10)
             %                 error('error');
@@ -1565,12 +1566,38 @@ for j = 2:length(t)
                         if (Method_ethr == 0)
                             [Pr, Cam(k)] = Bargain(tau, k, N, Camera_Index, Utility_O1);
                             handles.probability(Camera_Index, Table3(2), k) = Pr;
+%                             if (Mobile_flag == 1)
+%                                 AAA = [Pr', Camera_Index];
+%                                 BBB = sortrows(AAA, -1);
+%                                 for ii1 = 1:nc
+%                                     if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
+%                                         
+%                                     else
+%                                         Cam(k) = BBB(ii1, 2);
+%                                         break
+%                                     end
+%                                 end
+%                                 
+%                             end
                         end
                         
                         if (Method_ethr == 1)
                             if (~isempty(find(aa - bb > 0, 1)))                            % The energies of the cameras are higher than E_Thr
                                 [Pr, Cam(k)] = Bargain(tau, k, N, Camera_Index, Utility_O1);
                                 handles.probability(Camera_Index, Table3(2), k) = Pr;
+%                                 if (Mobile_flag == 1)
+%                                     AAA = [Pr', Camera_Index];
+%                                     BBB = sortrows(AAA, -1);
+%                                     for ii1 = 1:nc
+%                                         if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
+%                                         
+%                                         else
+%                                             Cam(k) = BBB(ii1, 2);
+%                                             break
+%                                         end
+%                                     end
+%                                 
+%                                 end
                             else                                                          % The energies of the cameras are lower than E_Thr
                                 Cam1 = find(Energy_Left(Cam_Low) == max(Energy_Left(Camera_Index')));
                                 if (length(Cam1) > 1)
