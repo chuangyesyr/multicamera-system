@@ -567,18 +567,27 @@ W_MD = 0.5;     % weight for the distance between mobile camera and the object
 W_ME = 0.5;     % weight for the remaining energy of mobile camera
 % default set up
 Trajectory = 1;
-W_E = 0.4;
-W_R = 0.4;
-W_L = 0.2;
+
 aerfa = 0.4;
-Updating_Method = 4;
+Updating_Method = 5;
 InitialE = 1;
 Trigger = 0;
 Method_ethr = 1;
 
 Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
-E_flag = 0;                               % 0: does not take energy into account  1: take energy into account
+E_flag = 1;                               % 0: does not take energy into account  1: take energy into account
+Static_flag = 0;                          % 1: static camera has highest priority
 repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
+
+if (E_flag == 0)
+    W_E = 0;
+    W_R = 0.4;
+    W_L = 0.2;
+else
+    W_E = 0.4;
+    W_R = 0.4;
+    W_L = 0.2;
+end
 
 if (Mobile_flag == 0)
     W_E = 0;
@@ -758,7 +767,10 @@ end
 Energy = 8;
 switch InitialE
     case 1
-        Initial_Energy = Energy*ones(1, nC);                                         % Initial energy for each camera
+        Energy_Static = 8;
+        Energy_Mobile = 4;
+        Initial_Energy = Energy_Static*ones(1, nC);                                         % Initial energy for each camera
+        Initial_Energy(nSC+1:nC) = Energy_Mobile*ones(1, nMC);
         savefile3 = './%s/Initial_Energy';
         ssfile3 = sprintf(savefile3, Filename);
         save(ssfile3, 'Initial_Energy');
@@ -1228,9 +1240,13 @@ for j = 2:length(t)
         index_occupy = sum(Table_Tracking(nSC+1:nSC+nMC, :), 2);
         index_occupy(index_occupy > 0) = 1;
         situation_Mcam = index_occupy + idlecam_assigned;
+
         
         for i = 1:nO
-            if (sum(Table_Seeing(1:nSC, i)) == 1 && sum(Table_Seeing(:, i)) - sum(situation_Mcam) == 1)    % Only one static camera observe the object
+            obj_nO_sit = sum(Mc_assign(:, i))+sum(Table_Tracking(nSC+1:nC, i));               % object i is tracked by a mobile camera or a mobile camera is assigned to this object
+            idle_cam_sit = Table_Seeing(nSC+1:nC, i) - index_occupy - idlecam_assigned;
+            any_idle_see = find(idle_cam_sit > 0, 1);
+            if (sum(Table_Seeing(1:nSC, i)) == 1 && obj_nO_sit == 0 && isempty(any_idle_see))                          % Only one static camera observe the object
                 index_t = Table_Tracking(:, i) == 1;
                 Angles_D(index_t, i) = Angles_Diff1(index_t, i);
                 Distance_D(index_t, i) = Distance1(index_t, i);
@@ -1399,7 +1415,7 @@ for j = 2:length(t)
         Load = zeros(1, nC);
         Table2(1:nC, 1:nO) = zeros(nC, nO);                                             % Table2 is the task assignment situation
         
-        if (Mobile_flag == 1 && E_flag == 0)                             % If mobile cameras are in use, the object is always given to static camera if it is seen by both mobile camera and static camera
+        if (Mobile_flag == 1 && E_flag == 0 && Static_flag == 1)                             % If mobile cameras are in use, the object is always given to static camera if it is seen by both mobile camera and static camera
             for i = 1:nO
                 if (find(Table4(1:nSC, i) == 1))
                     Table4(nSC+1:nC, i) = 0;
@@ -1566,38 +1582,38 @@ for j = 2:length(t)
                         if (Method_ethr == 0)
                             [Pr, Cam(k)] = Bargain(tau, k, N, Camera_Index, Utility_O1);
                             handles.probability(Camera_Index, Table3(2), k) = Pr;
-%                             if (Mobile_flag == 1)
-%                                 AAA = [Pr', Camera_Index];
-%                                 BBB = sortrows(AAA, -1);
-%                                 for ii1 = 1:nc
-%                                     if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
-%                                         
-%                                     else
-%                                         Cam(k) = BBB(ii1, 2);
-%                                         break
-%                                     end
-%                                 end
-%                                 
-%                             end
+                            if (Mobile_flag == 1)
+                                AAA = [Pr', Camera_Index];
+                                BBB = sortrows(AAA, -1);
+                                for ii1 = 1:nc
+                                    if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
+                                        
+                                    else
+                                        Cam(k) = BBB(ii1, 2);
+                                        break
+                                    end
+                                end
+                                
+                            end
                         end
                         
                         if (Method_ethr == 1)
                             if (~isempty(find(aa - bb > 0, 1)))                            % The energies of the cameras are higher than E_Thr
                                 [Pr, Cam(k)] = Bargain(tau, k, N, Camera_Index, Utility_O1);
                                 handles.probability(Camera_Index, Table3(2), k) = Pr;
-%                                 if (Mobile_flag == 1)
-%                                     AAA = [Pr', Camera_Index];
-%                                     BBB = sortrows(AAA, -1);
-%                                     for ii1 = 1:nc
-%                                         if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
-%                                         
-%                                         else
-%                                             Cam(k) = BBB(ii1, 2);
-%                                             break
-%                                         end
-%                                     end
-%                                 
-%                                 end
+                                if (Mobile_flag == 1)
+                                    AAA = [Pr', Camera_Index];
+                                    BBB = sortrows(AAA, -1);
+                                    for ii1 = 1:nc
+                                        if (BBB(ii1, 2) > nSC && sum(Table_in(BBB(ii1, 2), 1:nO)) == 1)
+                                        
+                                        else
+                                            Cam(k) = BBB(ii1, 2);
+                                            break
+                                        end
+                                    end
+                                
+                                end
                             else                                                          % The energies of the cameras are lower than E_Thr
                                 Cam1 = find(Energy_Left(Cam_Low) == max(Energy_Left(Camera_Index')));
                                 if (length(Cam1) > 1)
