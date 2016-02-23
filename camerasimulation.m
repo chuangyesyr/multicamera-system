@@ -577,7 +577,7 @@ Method_ethr = 1;
 Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
 E_flag = 1;                               % 0: does not take energy into account  1: take energy into account
 Static_flag = 0;                          % 1: static camera has highest priority
-repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
+repeat = 0;                               % 0: A new setting  1: Repeat experiments with different parameters
 
 if (E_flag == 0)
     W_E = 0;
@@ -768,9 +768,10 @@ Energy = 8;
 switch InitialE
     case 1
         Energy_Static = 8;
-        Energy_Mobile = 4;
+        Energy_Mobile = 1;
         Initial_Energy = Energy_Static*ones(1, nC);                                         % Initial energy for each camera
         Initial_Energy(nSC+1:nC) = Energy_Mobile*ones(1, nMC);
+        Initial_Energy(nC) = 2;
         savefile3 = './%s/Initial_Energy';
         ssfile3 = sprintf(savefile3, Filename);
         save(ssfile3, 'Initial_Energy');
@@ -799,8 +800,9 @@ switch InitialE
         close('camerasimulation');
 end
 
-% E_Thr = 0;
-E_Thr = 0.1*Energy;                                                           % Energy left alert threshold
+E_Thr = 0;
+EMC_Thr = 0.8;                                                                  % Energy threshold for mobile camera
+% E_Thr = 0.1*Energy;                                                           % Energy left alert threshold
 
 Idle_Consumption = 0.0001;
 % Dist_Thr = 0.4;                                                               % Distance(Resolution) alert threshold
@@ -964,15 +966,20 @@ Distance_Temp = ones(nC, nO)*0.5;
 Angle_Thr = pi/6*(8/10);
 Distance_Thr = 0.5*(0.8);
 
-flag7_pr = 0;
 idlecam_assigned = zeros(nMC, 1);
 Mc_assign = zeros(nMC, nO);
+index_occupy = zeros(nMC, 1);
+
+Mcam_assign_Mcam = zeros(nMC, nMC);
 
 factor_speed = 0.005;
 time_tracked = zeros(1, nO);
 
 direction_obj = zeros(length(t), nO)+pi/3;
+
+flag8_temp = 0;
 for j = 2:length(t)
+    Table2_temp = Table2;
     Table3(1) = Table3(1) + 1;
     handles.count_com_overall(Table3(1)) = 0;                                                  % Draw dynamic predefined trajectories
     for i = 1:nO                                                         % Draw dynamic predefined trajectories
@@ -1120,7 +1127,7 @@ for j = 2:length(t)
     Table1_1(Cam_Die, :) = 0;
     
     Table4 = Table1_1;
-    Cam_Low = find(Energy_Left < E_Thr);
+    Cam_Low = find(Energy_Left < E_Thr);                      % For mobile case we can change E_Thr to EMC_Thr
     AA = sum(Table4);
     if (~isempty(Cam_Low))
         if (length(Cam_Low) > 1)
@@ -1142,6 +1149,7 @@ for j = 2:length(t)
     flag5 = 0;                                                                          % If flag5 equals to 1, the object out a camera's FOV, the camera is not the tracking one
     flag6 = 0;
     flag7 = 0;                                                                          % Low resolution alert in static camera
+    flag8 = 0;                                                                          % Low energy of mobile camera
 
     
     
@@ -1285,10 +1293,31 @@ for j = 2:length(t)
     
     Diff_Angle_Temp = Angles_Diff1;
     Distance_Temp = Distance1;
+    
+    Energy_MC = Energy_Left(nSC+1:nC);
+    ind_MC_tr = find(Energy_MC < EMC_Thr);
+    if (~isempty(ind_MC_tr))
+        stat = sum(Table2(ind_MC_tr+nSC, 1:nO), 2);
+        ind_MC_tr1 = find(stat == 1, 1);
+        if (~isempty(ind_MC_tr1) && sum(sum(Mcam_assign_Mcam(ind_MC_tr1, :))) ~= length(ind_MC_tr1) && flag8_temp == 0)
+            flag8 = 1;
+            flag8_temp = 1;
+            for ij = 1:length(ind_MC_tr1)
+                if (sum(Mcam_assign_Mcam(ind_MC_tr1, :)) == 0)
+                    ind_MC_tr2 = ind_MC_tr(ind_MC_tr1(ij));
+                    ind_obj_MC = find(Table2(ind_MC_tr2+nSC, 1:nO) == 1, 1);
+                end
+            end
+                
+        end
+    end
+    
+    
+    
     % The requirement for task assignment, do not need Time_Period
     switch Trigger
         case 0
-            if (flag1 == 1 || flag3 == 1 || flag4 == 1 || flag5 == 1 || flag6 == 1 || flag7 == 1)                % Task assignment
+            if (flag1 == 1 || flag3 == 1 || flag4 == 1 || flag5 == 1 || flag6 == 1 || flag7 == 1 || flag8 == 1)                % Task assignment
                 %             if (flag1 == 1 || flag3 == 1 || flag5 == 1 || flag6 == 1)
                 trigger = 1;
             end
@@ -1436,6 +1465,8 @@ for j = 2:length(t)
             end
         end
         
+        cor_obj = [x(:, j)'; y(:, j)'];
+        cor_Mcam = [x1(:, j)'; y1(:, j)'];
         if (flag7 == 1)             % Release one mobile camera, and this mobile camera is chasing the object is moving out from FOV of the tracking camera
             Table_Tracking = handles.Table2(1:nC, 1:nO);
             Table_Seeing = Table4(1:nC, 1:nO);
@@ -1444,16 +1475,17 @@ for j = 2:length(t)
             Num_idle_cam = length(index_idle_cam);
            
 %             cor_obj = handles.coordinates_object;
-            cor_obj = [x(:, j)'; y(:, j)'];
-            cor_Mcam = [x1(:, j)'; y1(:, j)'];
+            
             
            
             for i = 1:Num_ob
                 Num_idlecam = nMC - sum(index_occupy) - sum(idlecam_assigned);
+                
                 i_o = index_ob(i);
                 x_o = cor_obj(1, i_o);
                 y_o = cor_obj(2, i_o);
-
+                i_tra = find(Table2(1:nSC, i_o) == 1);
+                
 
                 real_idlecam = ones(nMC, 1) - index_occupy - idlecam_assigned;
                 
@@ -1481,21 +1513,56 @@ for j = 2:length(t)
             end           
         end
         
-        
-        for i = 1:nMC
-            index_obj_assigned = find(Mc_assign(i, :) == 1);
-            if (~isempty(index_obj_assigned))
-                situ1 = Table1(nSC+1:nC, index_obj_assigned) - index_occupy - idlecam_assigned;
-                dd1 = find(situ1 > 0, 1);
-                if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || ...
-                        sum(Table4(1:nSC, index_obj_assigned), 1) == 0 || ...
-                        (sum(Table2(1:nSC, index_obj_assigned), 1) == 1 && ~isempty(dd1)) || ...
-                       Table1(i+nSC, index_obj_assigned) == 1)
-                    idlecam_assigned(i) = 0;
-                    Mc_assign(i, index_obj_assigned) = 0;
-                end
+        if (flag8 == 1)
+            index_idle_M = find(situation_Mcam == 0);
+            idle_M_len = length(index_idle_M);
+            if (~isempty(index_idle_M))
+            
+                cor_obj_M = [x(ind_obj_MC, j); y(ind_obj_MC, j)];
+                cor_idlecam_M = cor_Mcam(1:2, index_idle_M);
+                energy_idlecam_M = Energy_Left(nSC+index_idle_M);
+                cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, idle_M_len);
+                dis_obj_idlecam_M = sqrt(sum(cor_diff_M.^2, 1));
+                utility_obj_idlecam_M = W_ME*energy_idlecam_M + W_MD*(1-dis_obj_idlecam_M/max(dis_obj_idlecam_M));           
+                idlecam_chosen_M = utility_obj_idlecam_M == max(utility_obj_idlecam_M);
+                idlecam_index_M = index_idle_M(idlecam_chosen_M);                            % The idle camera with the highest utility is chosen
+                idlecam_assigned(idlecam_index_M, 1) = 1;
+                    
+                Mc_assign(idlecam_index_M, ind_obj_MC) = 1;
+                    
+                y_d = (cor_obj_M(2)-cor_idlecam_M(2, idlecam_chosen_M));
+                x_d = (cor_obj_M(1)-cor_idlecam_M(1, idlecam_chosen_M));
+                
+                s_x = x_d < 0;
+                
+                direction(idlecam_index_M) = mod(atan(y_d/x_d) + pi*s_x, 2*pi);
             end
+            
         end
+        
+        
+%         for i = 1:nMC            %% need to think about it
+%             index_obj_assigned = find(Mc_assign(i, :) == 1);
+%             if (~isempty(index_obj_assigned))
+%                 if (flag7 == 1)
+%                     situ1 = Table1(nSC+1:nC, index_obj_assigned) - index_occupy - idlecam_assigned;
+%                     dd1 = find(situ1 > 0, 1);
+%                     if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || ...
+%                             sum(Table4(1:nSC, index_obj_assigned), 1) == 0 || ...
+%                             (sum(Table2(1:nSC, index_obj_assigned), 1) == 1 && ~isempty(dd1)) || ...
+%                         Table1(i+nSC, index_obj_assigned) == 1)
+%                         idlecam_assigned(i) = 0;
+%                         Mc_assign(i, index_obj_assigned) = 0;
+%                     end
+%                 
+%                 end
+%                 if (Table2(ind_MC_tr1+nSC, index_obj_assigned) == 0)
+%                     idlecam_assigned(i) = 0;
+%                     Mc_assign(i, index_obj_assigned) = 0;
+%                 end   
+%             end
+%         end
+        
         
 
         
@@ -1629,6 +1696,23 @@ for j = 2:length(t)
                         
                         Table_in(Cam(k), k) = 1;                                      % The loop-th decision make
                     end
+                elseif (~isempty(Camera_Index) && min(Camera_Index) > nSC)
+                    index_Mcam_tracking = find(Table2(:, k) == 1, 1);
+                    index_taking = [];
+                    
+                    for ik = 1:nc
+                        if (index_occupy(Camera_Index(ik) - nSC) == 0 && idlecam_assigned(Camera_Index(ik) - nSC) == 0 && ik ~= index_Mcam_tracking)
+                            index_taking = [index_taking, Camera_Index(ik)];
+                        
+                        end
+                    end
+                    if (~isempty(index_taking))
+                        index_will_tracking = index_taking(Energy_Left(index_taking) == max(Energy_Left(index_taking)));
+                    end
+                    
+                    Table2(index_will_tracking, k) = 1;
+                    Table2(index_Mcam_tracking, k) = 0;
+                                       
                 end
             end
             %             disp('Table_message');
@@ -1891,10 +1975,35 @@ for j = 2:length(t)
         
         handles.Table2 = Table2;
         set(tt2, 'Data', Table2);
+        
+        
+        
+        for i = 1:nMC            %% need to think about it
+            index_obj_assigned = find(Mc_assign(i, :) == 1);
+            if (~isempty(index_obj_assigned))
+                index_cam_tra = find(Table2_temp(1:nC, index_obj_assigned) == 1, 1);
+                if (~isempty(index_cam_tra) && index_cam_tra <= nSC)
+                    situ1 = Table1(nSC+1:nC, index_obj_assigned) - index_occupy - idlecam_assigned;
+                    dd1 = find(situ1 > 0, 1);
+                    if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || ...
+                            sum(Table4(1:nSC, index_obj_assigned), 1) == 0 || ...
+                            (sum(Table2(1:nSC, index_obj_assigned), 1) == 1 && ~isempty(dd1)) || ...
+                        Table1(i+nSC, index_obj_assigned) == 1)
+                        idlecam_assigned(i) = 0;
+                        Mc_assign(i, index_obj_assigned) = 0;
+                    end
+                
+
+                elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && Table2(index_cam_tra, index_obj_assigned) == 0)
+                    idlecam_assigned(i) = 0;
+                    Mc_assign(i, index_obj_assigned) = 0;
+                end   
+            end
+        end
     end
     if (j > 2 && Mobile_flag == 1)
         for i = 1:nMC
-            obj_tracked = find(Table2(i+nSC, :) == 1);
+            obj_tracked = find(Table2(i+nSC, 1:nO) == 1);
                        
             if (~isempty(obj_tracked))
                 x_d1 = x(obj_tracked, j-1) - x1(i, j-1);
