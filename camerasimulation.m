@@ -577,7 +577,7 @@ Method_ethr = 1;
 Mobile_flag = 1;                          % 0: no mobile camera  1: mobile camera
 E_flag = 1;                               % 0: does not take energy into account  1: take energy into account
 Static_flag = 0;                          % 1: static camera has highest priority
-repeat = 0;                               % 0: A new setting  1: Repeat experiments with different parameters
+repeat = 1;                               % 0: A new setting  1: Repeat experiments with different parameters
 
 if (E_flag == 0)
     W_E = 0;
@@ -974,6 +974,7 @@ Mcam_assign_Mcam = zeros(nMC, nMC);
 
 factor_speed = 0.005;
 time_tracked = zeros(1, nO);
+obj_tracked_temp = zeros(1, nO);
 
 direction_obj = zeros(length(t), nO)+pi/3;
 
@@ -982,7 +983,7 @@ for j = 2:length(t)
     Table2_temp = Table2;
     Table3(1) = Table3(1) + 1;
     handles.count_com_overall(Table3(1)) = 0;                                                  % Draw dynamic predefined trajectories
-    for i = 1:nO                                                         % Draw dynamic predefined trajectories
+    for i = 1:nO                                                                        % Draw dynamic predefined trajectories
         set(handles.line_handle(i), 'Position', [x(i,j), y(i,j), ObjectSize, ObjectSize]);
         set(handles.text_handle(i), 'Position', [x(i,j), y(i,j)], 'string', handles.str{i});
     end    
@@ -990,8 +991,8 @@ for j = 2:length(t)
         case 1
                                                    % initial directions of all objects
             for i = 1:nO                                                                  % moving x+ axis
-                x(i,j) = x(i,j-1) + obj_speed*2*cos(direction_obj(j-1, i));
-                y(i,j) = y(i,j-1) + obj_speed*2*sin(direction_obj(j-1, i));
+                x(i,j) = x(i,j-1) + obj_speed*2*cos(direction_obj(j-1, i))*i;
+                y(i,j) = y(i,j-1) + obj_speed*2*sin(direction_obj(j-1, i))*i;
                 if (x(i, j) > x_max || x(i, j) < x_min)
                     direction_obj(j, i) = mod(pi-direction_obj(j-1, i), 2*pi);
                 elseif (y(i, j) > y_max || y(i, j) < y_min)
@@ -1231,6 +1232,7 @@ for j = 2:length(t)
                 uu(Camera_Index1, k) = Weight*[handles.Energy(Camera_Index1, Table3(1), k); ...
                     handles.Resolution(Camera_Index1, Table3(1), k); ...
                     1];
+                handles.Table2(Camera_Index1, k) = 1;
                 
                 
             end
@@ -1263,6 +1265,22 @@ for j = 2:length(t)
                 Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
             end
         end
+        
+        for i = 1:nO
+            if (sum(Mc_assign(:, i)) == 0 && sum(Table_Tracking(nSC+1:nC, i)) == 1)            % Oi is tracked by a mobile camera and has not been assigned another idle mobile camera
+                index_t = find(Table_Tracking(:, i) == 1, 1);
+                if (sum(Table_Tracking(index_t, :)) > 1)
+                    if (i ~= obj_tracked_temp(index_t - nSC))
+                        Angles_D(index_t, i) = Angles_Diff1(index_t, i);
+                        Distance_D(index_t, i) = Distance1(index_t, i);
+            
+                        Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
+                        Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
+                        
+                    end
+                end
+            end
+        end
         Angles_D(Angles_D > Angle_Thr) = 1;
         Angles_D(Angles_D <= Angle_Thr) = 0;
         Angle_Trend(Angle_Trend > 0) = 1;
@@ -1286,9 +1304,15 @@ for j = 2:length(t)
         if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
             
             index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
-            index_idle_cam = find(situation_Mcam == 0);                     % The index of the idle mobile cameras
+            index_idle_cam = find(situation_Mcam == 0);                           % The index of the idle mobile cameras
             flag7 = 1;
-        end    
+        end 
+        
+        
+
+                    
+ 
+ 
     end
     
     Diff_Angle_Temp = Angles_Diff1;
@@ -1978,7 +2002,7 @@ for j = 2:length(t)
         
         
         
-        for i = 1:nMC            %% need to think about it
+        for i = 1:nMC            %% need to think about it   stop the assignment
             index_obj_assigned = find(Mc_assign(i, :) == 1);
             if (~isempty(index_obj_assigned))
                 index_cam_tra = find(Table2_temp(1:nC, index_obj_assigned) == 1, 1);
@@ -1988,13 +2012,13 @@ for j = 2:length(t)
                     if (sum(Table4(1:nSC, index_obj_assigned), 1) > 1 || ...
                             sum(Table4(1:nSC, index_obj_assigned), 1) == 0 || ...
                             (sum(Table2(1:nSC, index_obj_assigned), 1) == 1 && ~isempty(dd1)) || ...
-                        Table1(i+nSC, index_obj_assigned) == 1)
+                        Table1(i+nSC, index_obj_assigned) == 1)              %% more than 1 SC see obj, none of SC see obj, assigned MC see obj, other MC see obj
                         idlecam_assigned(i) = 0;
                         Mc_assign(i, index_obj_assigned) = 0;
                     end
                 
 
-                elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && Table2(index_cam_tra, index_obj_assigned) == 0)
+                elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && (Table2(index_cam_tra, index_obj_assigned) == 0 || Table1(1:nC, index_obj_assigned) > 1 || Tabel1(index_cam_tra, index_obj_assigned) == 1))    %% none of the camera see obj, any other camera sees the obj
                     idlecam_assigned(i) = 0;
                     Mc_assign(i, index_obj_assigned) = 0;
                 end   
@@ -2003,7 +2027,15 @@ for j = 2:length(t)
     end
     if (j > 2 && Mobile_flag == 1)
         for i = 1:nMC
-            obj_tracked = find(Table2(i+nSC, 1:nO) == 1);
+            obj_tracked1 = find(Table2(i+nSC, 1:nO) == 1);
+            if (length(obj_tracked1) > 1 && ~isempty(obj_tracked1))
+                obj_tracked = obj_tracked_temp(i);
+            elseif (~isempty(obj_tracked1))
+                obj_tracked = obj_tracked1;
+                obj_tracked_temp(i) = obj_tracked;
+            else
+                obj_tracked = [];
+            end
                        
             if (~isempty(obj_tracked))
                 x_d1 = x(obj_tracked, j-1) - x1(i, j-1);
