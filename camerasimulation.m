@@ -175,7 +175,7 @@ handles.str_SC{handles.count_Scamera} = str;
 % camera FOV
 FOVAngle = 60;
 FOVAngle = FOVAngle/180*pi;
-FOVlen = 0.5;
+FOVlen = 0.1;
 
 % FOV lines
 handles.hLine1_S(handles.count_Scamera) = line([x, x + FOVlen*cos(cameraAngle + FOVAngle/2)], ...
@@ -217,7 +217,7 @@ handles.str_MC{handles.count_Mcamera} = str;
 % camera FOV
 FOVAngle = 60;
 FOVAngle = FOVAngle/180*pi;
-FOVlen = 0.5;
+FOVlen = 0.1;
 
 % FOV lines
 handles.hLine1_M(handles.count_Mcamera) = line([x, x + FOVlen*cos(cameraAngle + FOVAngle/2)], ...
@@ -387,7 +387,7 @@ function addObject_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global object_parameters;
-ObjectSize = 0.03;
+ObjectSize = 0.015;
 handles.count_object = handles.count_object + 1;
 [ x , y ] = ginput(1);
 str = ['  O' num2str(handles.count_object)];
@@ -408,7 +408,7 @@ function addObstacle_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global obstacle_parameters;
-ObstacleSize_S = 0.05;
+ObstacleSize_S = 0.025;
 handles.count_obstacle = handles.count_obstacle + 1;
 [ x , y ] = ginput(1);
 str_S = ['  S' num2str(handles.count_obstacle)];
@@ -1517,7 +1517,7 @@ for j = 2:length(t)
                 if (sum(real_idlecam) > 0)
                     index_idle_cam1 = find(real_idlecam == 1);
                     cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
-                    energy_idlecam = Energy_Left(nSC+index_idle_cam1);
+                    energy_idlecam = Energy_Left(nSC+index_idle_cam1)/max(Energy_Left(nSC+index_idle_cam1));
                     cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
                     dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
                     utility_obj_idlecam = W_ME*energy_idlecam + W_MD*(1-dis_obj_idlecam/max(dis_obj_idlecam));           
@@ -1544,7 +1544,7 @@ for j = 2:length(t)
             
                 cor_obj_M = [x(ind_obj_MC, j); y(ind_obj_MC, j)];
                 cor_idlecam_M = cor_Mcam(1:2, index_idle_M);
-                energy_idlecam_M = Energy_Left(nSC+index_idle_M);
+                energy_idlecam_M = Energy_Left(nSC+index_idle_M)/max(Energy_Left(nSC+index_idle_M));
                 cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, idle_M_len);
                 dis_obj_idlecam_M = sqrt(sum(cor_diff_M.^2, 1));
                 utility_obj_idlecam_M = W_ME*energy_idlecam_M + W_MD*(1-dis_obj_idlecam_M/max(dis_obj_idlecam_M));           
