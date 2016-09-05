@@ -999,7 +999,7 @@ idlecam_assigned = zeros(nMC, 1);
 Mc_assign = zeros(nMC, nO);
 index_occupy = zeros(nMC, 1);
 
-Mcam_assign_Mcam = zeros(nMC, nMC);
+% Mc_assign = zeros(nMC, nO);
 
 factor_speed = 0.01;
 time_tracked = zeros(1, nO);
@@ -1009,6 +1009,9 @@ direction_obj = zeros(length(t), nO)+pi/3;
 
 flag8_temp = 0;
 for j = 2:length(t)
+    if (j == 824)
+        aaaaa = 1;
+    end
     Table2_temp = Table2;
     Table3(1) = Table3(1) + 1;
     handles.count_com_overall(Table3(1)) = 0;                                                  % Draw dynamic predefined trajectories
@@ -1275,126 +1278,128 @@ for j = 2:length(t)
     Distance_D = zeros(nSC, nO);
     Angle_Trend = zeros(nSC, nO);
     Distance_Trend = zeros(nSC, nO);
+    
     if (j > 2)                                                          % flag 7 trigger (An objcet is moving out from FOV of the static tracking camera)
         Table_Tracking = handles.Table2(1:nC, 1:nO);
         Table_Seeing = Table4(1:nC, 1:nO);
         index_occupy = sum(Table_Tracking(nSC+1:nSC+nMC, :), 2);
         index_occupy(index_occupy > 0) = 1;
         situation_Mcam = index_occupy + idlecam_assigned;
-
         
-        for i = 1:nO
-            obj_nO_sit = sum(Mc_assign(:, i))+sum(Table_Tracking(nSC+1:nC, i));               % object i is tracked by a mobile camera or a mobile camera is assigned to this object
-            idle_cam_sit = Table_Seeing(nSC+1:nC, i) - index_occupy - idlecam_assigned;
-            any_idle_see = find(idle_cam_sit > 0, 1);
-            if (sum(Table_Seeing(1:nSC, i)) == 1 && obj_nO_sit == 0 && isempty(any_idle_see))                          % Only one static camera observe the object
-                index_t = Table_Tracking(:, i) == 1;
-                Angles_D(index_t, i) = Angles_Diff1(index_t, i);
-                Distance_D(index_t, i) = Distance1(index_t, i);
+        if (j > 3)
+            for i = 1:nO
+                obj_nO_sit = sum(Mc_assign(:, i))+sum(Table_Tracking(nSC+1:nC, i));               % object i is tracked by a mobile camera or a mobile camera is assigned to this object
+                idle_cam_sit = Table_Seeing(nSC+1:nC, i) - index_occupy - idlecam_assigned;
+                any_idle_see = find(idle_cam_sit > 0, 1);
+                if (sum(Table_Seeing(1:nSC, i)) == 1 && obj_nO_sit == 0 && isempty(any_idle_see))                          % Only one static camera observe the object
+                    index_t = Table_Tracking(:, i) == 1;
+                    Angles_D(index_t, i) = Angles_Diff1(index_t, i);
+                    Distance_D(index_t, i) = Distance1(index_t, i);
             
-                Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
-                Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
+                    Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
+                    Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
+                end
             end
-        end
         
-        for i = 1:nO
-            if (sum(Mc_assign(:, i)) == 0 && sum(Table_Tracking(nSC+1:nC, i)) == 1)            % Oi is tracked by a mobile camera and has not been assigned another idle mobile camera
-                index_t = find(Table_Tracking(:, i) == 1, 1);
-                if (sum(Table_Tracking(index_t, :)) > 1)
-                    if (i ~= obj_tracked_temp(index_t - nSC))
-                        Angles_D(index_t, i) = Angles_Diff1(index_t, i);
-                        Distance_D(index_t, i) = Distance1(index_t, i);
+            for i = 1:nO
+                if (sum(Mc_assign(:, i)) == 0 && sum(Table_Tracking(nSC+1:nC, i)) == 1)            % Oi is tracked by a mobile camera and has not been assigned another idle mobile camera
+                    index_t = find(Table_Tracking(:, i) == 1, 1);
+                    if (sum(Table_Tracking(index_t, :)) > 1)
+                        if (i ~= obj_tracked_temp(index_t - nSC))
+                            Angles_D(index_t, i) = Angles_Diff1(index_t, i);
+                            Distance_D(index_t, i) = Distance1(index_t, i);
             
-                        Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
-                        Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
+                            Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
+                            Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
                         
+                        end
                     end
                 end
             end
-        end
-        Angles_D(Angles_D > Angle_Thr) = 1;
-        Angles_D(Angles_D <= Angle_Thr) = 0;
-        Angle_Trend(Angle_Trend > 0) = 1;
-        Angle_Trend(Angle_Trend <= 0) = 0;
-        Distance_D(Distance_D > Distance_Thr) = 1;
-        Distance_D(Distance_D <= Distance_Thr) = 0;
-        Distance_Trend(Distance_Trend > 0) = 1;
-        Distance_Trend(Distance_Trend <= 0) = 0;   
+            Angles_D(Angles_D > Angle_Thr) = 1;
+            Angles_D(Angles_D <= Angle_Thr) = 0;
+            Angle_Trend(Angle_Trend > 0) = 1;
+            Angle_Trend(Angle_Trend <= 0) = 0;
+            Distance_D(Distance_D > Distance_Thr) = 1;
+            Distance_D(Distance_D <= Distance_Thr) = 0;
+            Distance_Trend(Distance_Trend > 0) = 1;
+            Distance_Trend(Distance_Trend <= 0) = 0;   
         
-        Angle_Decision = Angles_D.*Angle_Trend;
-        Distance_Decision = Distance_D.*Distance_Trend;
+            Angle_Decision = Angles_D.*Angle_Trend;
+            Distance_Decision = Distance_D.*Distance_Trend;
         
-        Final_Decision = Angle_Decision + Distance_Decision;
-        Final_Decision(Final_Decision > 1) = 1;
-        s_Mc_assign = sum(Mc_assign, 1);
-        s_F = sum(Final_Decision, 1);
-        s_F(s_F > 1) = 1;
-        FF_D = find(s_F - s_Mc_assign > 0, 1);
+            Final_Decision = (Angle_Decision + Distance_Decision).*TT1;
+            Final_Decision(Final_Decision > 1) = 1;
+            s_Mc_assign = sum(Mc_assign, 1);
+            s_F = sum(Final_Decision, 1);
+            s_F(s_F > 1) = 1;
+            FF_D = find(s_F - s_Mc_assign > 0, 1);
         
-        t_s = zeros(1, nMC);
-        if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
+            t_s = zeros(1, nMC);
+            if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
             
-            index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
-            L_o = length(index_ob);                                               % Number of objects that trigger the re-assignment
-            for ij = 1:L_o
-                index_ct = find(Table_Tracking(1:nC, index_ob(ij)) == 1);
-                d_o1 = angles_a(index_ct, index_ob(ij));            % Direction of object-camera line
-                d_1(index_ct, index_ob(ij)) = Distance1(index_ct, index_ob(ij));
-                ang(index_ct, index_ob(ij)) = angles_Diff1(index_ct, index_ob(ij));
+                index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
+                L_o = length(index_ob);                                               % Number of objects that trigger the re-assignment
+                for ij = 1:L_o
+                    index_ct = find(Table_Tracking(1:nC, index_ob(ij)) == 1);
+                    d_o1 = angles_a(index_ct, index_ob(ij));            % Direction of object-camera line
+                    d_1(index_ct, index_ob(ij)) = Distance1(index_ct, index_ob(ij));
+                    ang(index_ct, index_ob(ij)) = angles_Diff1(index_ct, index_ob(ij));
                 
-                y_o = y(index_ob(ij), j) - y(index_ob(ij), j-1);
-                x_o = x(index_ob(ij), j) - x(index_ob(ij), j-1);
-                sp_o = sqrt(x_o^2 + y_o^2);
-                if(x_o) < 0;
-                    ia = 1;
-                else
-                    ia = 0;
-                end
-                d_o = mod(atan(y_o/x_o) + pi*ia, 2*pi);                          % Direction of object moving
-                
-                ang_temp = handles.coordinates_camera(3, index_ct);
-                if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
-                    d_o2 = mod(ang_temp + pi*2/3, 2*pi);
-                    d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
-                elseif ( mod(d_o1 + pi, 2*pi) < 2*pi && (d_o > mod(ang_temp + pi/6, 2*pi) && d_o1 < mod(d_o1 + pi, 2*pi)))
-                    d_o2 = mod(ang_temp + pi*2/3, 2*pi);
-                    d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
-                elseif ( mod(ang_temp + pi, 2*pi) > pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(ang_temp - pi/6, 2*pi))))
-                    d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
-                    d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
-                elseif ( mod(ang_temp + pi, 2*pi) < pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o <= mod(ang_temp - pi/6, 2*pi))))
-                    d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
-                    d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
-                else
-                    d_o2 = d_o + pi/2;
-                    d_ed = 100000;
-                end
-                
-                di3 = abs(d_o-d_o2);
-                
-                
-                di2 = 2*pi - (mod(abs(d_o - d_o1), 2*pi));                                % If di2 < pi/2, depart from camera, else move to camera
-                if (di2 <= pi/2 || di2 >= pi*3/2)
-                    if (di2 >= pi*3/2)
-                        di2 = 2*pi - di2;
+                    y_o = y(index_ob(ij), j) - y(index_ob(ij), j-1);
+                    x_o = x(index_ob(ij), j) - x(index_ob(ij), j-1);
+                    sp_o = sqrt(x_o^2 + y_o^2);
+                    if(x_o) < 0;
+                        ia = 1;
+                    else
+                        ia = 0;
                     end
-                    sp_ed = abs(sp_o*cos(di3));
-                    theta_2 = asin((d_1(index_ct, index_ob(ij)))/FOVlen*sin(di2));
-                    dd3 = FOVlen/sin(di2)*sin(di2 - theta_2);
-                    t_ed = d_ed/sp_ed;
-                    t_ar = dd3/sp_o;
-                else
-                    sp_ed = abs(sp_o*cos(di3));
-                    sp_ar = abs(sp_o*cos(di2));
-                    t_ed = d_ed/sp_ed;
-                    t_ar = d_1(index_ct, index_ob(ij))/sp_ar;
+                    d_o = mod(atan(y_o/x_o) + pi*ia, 2*pi);                          % Direction of object moving
+                
+                    ang_temp = handles.coordinates_camera(3, index_ct);
+                    if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
+                        d_o2 = mod(ang_temp + pi*2/3, 2*pi);
+                        d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
+                    elseif ( mod(d_o1 + pi, 2*pi) < 2*pi && (d_o > mod(ang_temp + pi/6, 2*pi) && d_o1 < mod(d_o1 + pi, 2*pi)))
+                        d_o2 = mod(ang_temp + pi*2/3, 2*pi);
+                        d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
+                    elseif ( mod(ang_temp + pi, 2*pi) > pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(ang_temp - pi/6, 2*pi))))
+                        d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
+                        d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
+                    elseif ( mod(ang_temp + pi, 2*pi) < pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o <= mod(ang_temp - pi/6, 2*pi))))
+                        d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
+                        d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
+                    else
+                        d_o2 = d_o + pi/2;
+                        d_ed = 100000;
+                    end
+                
+                    di3 = abs(d_o-d_o2);
+                
+                
+                    di2 = 2*pi - (mod(abs(d_o - d_o1), 2*pi));                                % If di2 < pi/2, depart from camera, else move to camera
+                    if (di2 <= pi/2 || di2 >= pi*3/2)
+                        if (di2 >= pi*3/2)
+                            di2 = 2*pi - di2;
+                        end
+                        sp_ed = abs(sp_o*cos(di3));
+                        theta_2 = asin((d_1(index_ct, index_ob(ij)))/FOVlen*sin(di2));
+                        dd3 = FOVlen/sin(di2)*sin(di2 - theta_2);
+                        t_ed = d_ed/sp_ed;
+                        t_ar = dd3/sp_o;
+                    else
+                        sp_ed = abs(sp_o*cos(di3));
+                        sp_ar = abs(sp_o*cos(di2));
+                        t_ed = d_ed/sp_ed;
+                        t_ar = d_1(index_ct, index_ob(ij))/sp_ar;
+                    end
+                    t_s(index_ob(ij)) = min(t_ed, t_ar);
                 end
-                t_s(index_ob(ij)) = min(t_ed, t_ar);
-            end
                        
-            index_idle_cam = find(situation_Mcam == 0);                           % The index of the idle mobile cameras
-            flag7 = 1;                                                            % Moving our in a short time
-        end 
+                index_idle_cam = find(situation_Mcam == 0);                           % The index of the idle mobile cameras
+                flag7 = 1;                                                            % Moving our in a short time
+            end 
+        end
         
     end
     
@@ -1406,14 +1411,17 @@ for j = 2:length(t)
     if (~isempty(ind_MC_tr))
         stat = sum(Table2(ind_MC_tr+nSC, 1:nO), 2);
         ind_MC_tr1 = find(stat == 1, 1);
-        if (~isempty(ind_MC_tr1) && sum(sum(Mcam_assign_Mcam(ind_MC_tr1, :))) ~= length(ind_MC_tr1) && flag8_temp == 0)
-            flag8 = 1;                                                  % Energy of mobile camera less than a threshold
-            flag8_temp = 1;
+        if (~isempty(ind_MC_tr1))
+                                                            % Energy of mobile camera less than a threshold
+            
             for ij = 1:length(ind_MC_tr1)
-                if (sum(Mcam_assign_Mcam(ind_MC_tr1, :)) == 0)
+                if (sum(Mc_assign(ind_MC_tr1, :)) == 0)
                     ind_MC_tr2 = ind_MC_tr(ind_MC_tr1(ij));
                     ind_obj_MC = find(Table2(ind_MC_tr2+nSC, 1:nO) == 1, 1);
-                    t(ind_obj_MC) = Energy_MC(ind_MC_tr2)/Tracking_Consumption;
+                    t_s(ind_obj_MC) = Energy_MC(ind_MC_tr2)/Tracking_Consumption;
+                    if (sum(Mc_assign(:, ind_obj_MC)) == 0)
+                        flag8 = 1;  
+                    end
                 end
             end
                 
@@ -1573,8 +1581,8 @@ for j = 2:length(t)
             end
         end
         
-        cor_obj = [x(:, j)'; y(:, j)'];
-        cor_Mcam = [x1(:, j)'; y1(:, j)'];
+        cor_obj = [x(:, j-1)'; y(:, j-1)'];
+        cor_Mcam = [x1(:, j-1)'; y1(:, j-1)'];
         if (flag7 == 1)             % Release one mobile camera, and this mobile camera is chasing the object is moving out from FOV of the tracking camera
             Table_Tracking = handles.Table2(1:nC, 1:nO);
             Table_Seeing = Table4(1:nC, 1:nO);
@@ -1644,16 +1652,24 @@ for j = 2:length(t)
         
         if (flag8 == 1)
             count_send_resource(nSC+ind_MC_tr) = count_send_resource(nSC+ind_MC_tr) + 2;
-            index_idle_M = find(situation_Mcam == 0);
-            count_send_resource(nSC+index_idle_M) = count_send_resource(nSC+index_idle_M) + 1;
-            idle_M_len = length(index_idle_M);
+            index_idle_M1 = find(situation_Mcam == 0);
+            count_send_resource(nSC+index_idle_M1) = count_send_resource(nSC+index_idle_M1) + 1;
+            idle_M_len = length(index_idle_M1);
+            ccc = 0;
+            index_idle_M = [];
+            for i_idle = 1:idle_M_len
+                if (Energy_Left(index_idle_M1(i_idle)) > EMC_Thr)
+                    ccc = ccc + 1;
+                    index_idle_M(ccc) = index_idle_M1(i_idle);
+                end
+            end
             sp_needed_M = [];
             if (~isempty(index_idle_M))
             
                 cor_obj_M = [x(ind_obj_MC, j); y(ind_obj_MC, j)];
                 cor_idlecam_M = cor_Mcam(1:2, index_idle_M);
                 energy_idlecam_M = Energy_Left(nSC+index_idle_M)/max(Energy_Left(nSC+index_idle_M));
-                cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, idle_M_len);
+                cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, ccc);
                 dis_obj_idlecam_M = sqrt(sum(cor_diff_M.^2, 1));
                 
                 sp_needed_M = dis_obj_idlecam_M/(t_s(ind_obj_MC)*time_factor);                            % required speeds
@@ -1675,7 +1691,7 @@ for j = 2:length(t)
                     idlecam_chosen_M = utility_obj_idlecam_M == max(utility_obj_idlecam_M);
                     idlecam_index_M = index_idle_M(idlecam_chosen_M);                            % The idle camera with the highest utility is chosen
                     idlecam_assigned(idlecam_index_M, 1) = 1;
-                    speed_act(idlecam_index_M) = sp_needed_M(idlecam_chosen_M);
+                    speed_act(idlecam_index_M) = max(sp_needed_M(idlecam_chosen_M), speed_lim);
                 
                     Mc_assign(idlecam_index_M, ind_obj_MC) = 1;
                     
@@ -1686,6 +1702,7 @@ for j = 2:length(t)
                 
                     direction(idlecam_index_M) = mod(atan(y_d/x_d) + pi*s_x, 2*pi);
                 end
+                flag8_temp = 1;
             end
             
         end
@@ -2142,9 +2159,9 @@ for j = 2:length(t)
                         idlecam_assigned(i) = 0;
                         Mc_assign(i, index_obj_assigned) = 0;
                     end
-                
+                elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && sum(Table1(1:nC, index_obj_assigned)) > 1)
 
-                elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && (Table2(index_cam_tra, index_obj_assigned) == 0 || Table1(1:nC, index_obj_assigned) > 1 || Tabel1(index_cam_tra, index_obj_assigned) == 1))    %% none of the camera see obj, any other camera sees the obj
+%                 elseif (~isempty(index_cam_tra) && index_cam_tra > nSC && (Table2(index_cam_tra, index_obj_assigned) == 0 || sum(Table1(1:nC, index_obj_assigned)) > 1 || Table1(index_cam_tra, index_obj_assigned) == 1))    %% none of the camera see obj, any other camera sees the obj
                     idlecam_assigned(i) = 0;
                     Mc_assign(i, index_obj_assigned) = 0;
                 end   
@@ -2163,7 +2180,7 @@ for j = 2:length(t)
                 obj_tracked = [];
             end
                        
-            if (~isempty(obj_tracked))                 % Mobile camera is tracking
+            if (~isempty(obj_tracked) && Energy_Left(i+nSC) ~= 0)                 % Mobile camera is tracking
                 x_d1 = x(obj_tracked, j-1) - x1(i, j-1);
                 y_d1 = y(obj_tracked, j-1) - y1(i, j-1);
                 dist = sqrt(x_d1^2+y_d1^2);
@@ -2196,7 +2213,7 @@ for j = 2:length(t)
                     
                     
                     
-            elseif (idlecam_assigned(i, 1) == 1)   
+            elseif (idlecam_assigned(i, 1) == 1 && Energy_Left(i+nSC) ~= 0)   
                 x1(i, j) = x1(i, j-1) + speed_act(i) * cos(direction(i));
                 y1(i, j) = y1(i, j-1) + speed_act(i) * sin(direction(i));
                     
@@ -2281,13 +2298,16 @@ for j = 2:length(t)
     Res = tempR2;
     handles.Table2 = Table2;
     set(tt2, 'Data', Table2);
+    TT1 = Table2(1:nSC, 1:nO);
+    Mc_assign = Mc_assign.*(1-Table2(nSC+1:nC, 1:nO));
+    idlecam_assigned = idlecam_assigned.*(1-sum(Table2(nSC+1:nC, 1:nO), 2));
     
     a1(1:nSC) = zeros(nSC, 1);
     b1(1:nSC) = zeros(nSC, 1);
 
     if (Mobile_flag == 1)
         Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption;
-        REnergy = REnergy - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate
+        REnergy = REnergy - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate;
 %         Energy_Left(nSC+1:end) = Energy_Left(nSC+1:end) - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate;
     end
     %     Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption - ...
