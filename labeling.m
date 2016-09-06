@@ -140,6 +140,7 @@ for i = 1:NC
                     Oin = Oin + 1;
                     if (abs(Objects_Position(1, jj1)-Cameras_Position(1, i)) < ObjectSize/2 && abs(Objects_Position(2, jj1)-Cameras_Position(2, i)) < ObjectSize/2 )
                         occRate(i, jj1) = 1;
+                        range_total = [range_total; 0, 2*pi];
                     else
                         Angle2 = [Angles(jj1), Angles(jj1 + NO), Angles(jj1 + 2*NO), Angles(jj1 + 3*NO)]; 
                         Angle3 = mod((Angle2 - mod((Cameras_Position(3, i) - Cameras_Position(4, i)/2), 2*pi)), 2*pi);
@@ -229,6 +230,7 @@ for i = 1:NC
                 Oin = Oin + 1;
                 if (abs(Objects_Position(1, jj1)-Cameras_Position(1, i)) < ObjectSize/2 && abs(Objects_Position(2, jj1)-Cameras_Position(2, i)) < ObjectSize/2 )
                     occRate(i, jj1) = 1;
+                    range_total = [range_total; 0, 2*pi];
                 else
                     Angle2 = [Angles(jj1), Angles(jj1 + NO), Angles(jj1 + 2*NO), Angles(jj1 + 3*NO)]; 
                     Angle3 = mod((Angle2 - mod((Cameras_Position(3, i) - Cameras_Position(4, i)/2), 2*pi)), 2*pi);

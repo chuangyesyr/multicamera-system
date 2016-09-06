@@ -1012,7 +1012,7 @@ direction_obj = zeros(length(t), nO)+pi/3;
 flag8_temp = 0;
 flag_Energy = 0;
 for j = 2:length(t)
-    if (j == 358)
+    if (j == 2994)
         aaaaa = 1;
     end
     Table2_temp = Table2;
@@ -1340,7 +1340,7 @@ for j = 2:length(t)
             s_F(s_F > 1) = 1;
             FF_D = find(s_F - s_Mc_assign > 0, 1);
         
-            t_s = zeros(1, nMC);
+            t_s = zeros(1, nO);
             if ((sum(index_occupy) + sum(idlecam_assigned)) < nMC && ~isempty(FF_D));
             
                 index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
@@ -1382,7 +1382,7 @@ for j = 2:length(t)
                     AA2 = mod(ang_temp-di_dd, 2*pi);
                     AA2(AA2 < FOVAngle/2) = 0;
                     FFF = d_dd + AA1.*AA2;
-                    ti_s2 = find(FFF > 0 ,1) - 1;
+                    ti_s2 = find(FFF == 0, 1, 'last');
                     t_s(index_ob(ij)) = ti_s2 * 0.7;
                        
 %                     if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
