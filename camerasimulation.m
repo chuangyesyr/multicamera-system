@@ -608,6 +608,7 @@ speed = 10*0.0001;                                                           % S
 obj_speed = 0.0001*2;
 
 speed_lim = obj_speed*50;                                                    % Speed limit of mobile camera
+time_lim = 20;
 Es_rate = 1;                                                                 % Energy consumption ratio (multiply speed)
 time_factor = 0.8;
 Idle_Consumption = 0.0001;                                                   % Energy consumption when camera is idle
@@ -779,11 +780,11 @@ Energy = 8;
 switch InitialE
     case 1
         Energy_Static = 8;
-        Energy_Mobile = 1;
+        Energy_Mobile = 4;
         Energy_Robot = 20;
         Initial_Energy = Energy_Static*ones(1, nC);                                         % Initial energy for each camera
         Initial_Energy(nSC+1:nC) = Energy_Mobile*ones(1, nMC);
-        Initial_Energy(nC) = 2;
+        Initial_Energy(nC) = 4;
         Initial_REnergy = Energy_Robot*ones(1, nMC);
         savefile3 = './%s/Initial_Energy';
         ssfile3 = sprintf(savefile3, Filename);
@@ -1001,7 +1002,7 @@ index_occupy = zeros(nMC, 1);
 
 % Mc_assign = zeros(nMC, nO);
 
-factor_speed = 0.01;
+factor_speed = 0.2;
 time_tracked = zeros(1, nO);
 obj_tracked_temp = zeros(1, nO);
 
@@ -1009,7 +1010,7 @@ direction_obj = zeros(length(t), nO)+pi/3;
 
 flag8_temp = 0;
 for j = 2:length(t)
-    if (j == 824)
+    if (j == 358)
         aaaaa = 1;
     end
     Table2_temp = Table2;
@@ -1023,8 +1024,8 @@ for j = 2:length(t)
         case 1
                                                    % initial directions of all objects
             for i = 1:nO                                                                  % moving x+ axis
-                x(i,j) = x(i,j-1) + obj_speed*cos(direction_obj(j-1, i))*i;
-                y(i,j) = y(i,j-1) + obj_speed*sin(direction_obj(j-1, i))*i;
+                x(i,j) = x(i,j-1) + obj_speed*i*cos(direction_obj(j-1, i));
+                y(i,j) = y(i,j-1) + obj_speed*i*sin(direction_obj(j-1, i));
                 if (x(i, j) > x_max || x(i, j) < x_min)
                     direction_obj(j, i) = mod(pi-direction_obj(j-1, i), 2*pi);
                 elseif (y(i, j) > y_max || y(i, j) < y_min)
@@ -1292,7 +1293,7 @@ for j = 2:length(t)
                 idle_cam_sit = Table_Seeing(nSC+1:nC, i) - index_occupy - idlecam_assigned;
                 any_idle_see = find(idle_cam_sit > 0, 1);
                 if (sum(Table_Seeing(1:nSC, i)) == 1 && obj_nO_sit == 0 && isempty(any_idle_see))                          % Only one static camera observe the object
-                    index_t = Table_Tracking(:, i) == 1;
+                    index_t = Table_Tracking(1:nSC, i) == 1;
                     Angles_D(index_t, i) = Angles_Diff1(index_t, i);
                     Distance_D(index_t, i) = Distance1(index_t, i);
             
@@ -1301,21 +1302,21 @@ for j = 2:length(t)
                 end
             end
         
-            for i = 1:nO
-                if (sum(Mc_assign(:, i)) == 0 && sum(Table_Tracking(nSC+1:nC, i)) == 1)            % Oi is tracked by a mobile camera and has not been assigned another idle mobile camera
-                    index_t = find(Table_Tracking(:, i) == 1, 1);
-                    if (sum(Table_Tracking(index_t, :)) > 1)
-                        if (i ~= obj_tracked_temp(index_t - nSC))
-                            Angles_D(index_t, i) = Angles_Diff1(index_t, i);
-                            Distance_D(index_t, i) = Distance1(index_t, i);
-            
-                            Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
-                            Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
-                        
-                        end
-                    end
-                end
-            end
+%             for i = 1:nO
+%                 if (sum(Mc_assign(:, i)) == 0 && sum(Table_Tracking(nSC+1:nC, i)) == 1)            % Oi is tracked by a mobile camera and has not been assigned another idle mobile camera
+%                     index_t = find(Table_Tracking(:, i) == 1, 1);
+%                     if (sum(Table_Tracking(index_t, :)) > 1)
+%                         if (i ~= obj_tracked_temp(index_t - nSC))
+%                             Angles_D(index_t, i) = Angles_Diff1(index_t, i);
+%                             Distance_D(index_t, i) = Distance1(index_t, i);
+%             
+%                             Angle_Trend(index_t, i) = Angles_Diff1(index_t, i) - Diff_Angle_Temp(index_t, i);
+%                             Distance_Trend(index_t, i) = Distance1(index_t, i) - Distance_Temp(index_t, i);
+%                         
+%                         end
+%                     end
+%                 end
+%             end
             Angles_D(Angles_D > Angle_Thr) = 1;
             Angles_D(Angles_D <= Angle_Thr) = 0;
             Angle_Trend(Angle_Trend > 0) = 1;
@@ -1357,43 +1358,66 @@ for j = 2:length(t)
                     d_o = mod(atan(y_o/x_o) + pi*ia, 2*pi);                          % Direction of object moving
                 
                     ang_temp = handles.coordinates_camera(3, index_ct);
-                    if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
-                        d_o2 = mod(ang_temp + pi*2/3, 2*pi);
-                        d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
-                    elseif ( mod(d_o1 + pi, 2*pi) < 2*pi && (d_o > mod(ang_temp + pi/6, 2*pi) && d_o1 < mod(d_o1 + pi, 2*pi)))
-                        d_o2 = mod(ang_temp + pi*2/3, 2*pi);
-                        d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
-                    elseif ( mod(ang_temp + pi, 2*pi) > pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(ang_temp - pi/6, 2*pi))))
-                        d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
-                        d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
-                    elseif ( mod(ang_temp + pi, 2*pi) < pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o <= mod(ang_temp - pi/6, 2*pi))))
-                        d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
-                        d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
-                    else
-                        d_o2 = d_o + pi/2;
-                        d_ed = 100000;
-                    end
-                
-                    di3 = abs(d_o-d_o2);
-                
-                
-                    di2 = 2*pi - (mod(abs(d_o - d_o1), 2*pi));                                % If di2 < pi/2, depart from camera, else move to camera
-                    if (di2 <= pi/2 || di2 >= pi*3/2)
-                        if (di2 >= pi*3/2)
-                            di2 = 2*pi - di2;
-                        end
-                        sp_ed = abs(sp_o*cos(di3));
-                        theta_2 = asin((d_1(index_ct, index_ob(ij)))/FOVlen*sin(di2));
-                        dd3 = FOVlen/sin(di2)*sin(di2 - theta_2);
-                        t_ed = d_ed/sp_ed;
-                        t_ar = dd3/sp_o;
-                    else
-                        sp_ed = abs(sp_o*cos(di3));
-                        sp_ar = abs(sp_o*cos(di2));
-                        t_ed = d_ed/sp_ed;
-                        t_ar = d_1(index_ct, index_ob(ij))/sp_ar;
-                    end
-                    t_s(index_ob(ij)) = min(t_ed, t_ar);
+                    xc = handles.coordinates_camera(1, index_ct);
+                    yc = handles.coordinates_camera(2, index_ct);
+                    ti_s1 = 1:500;
+                        
+                    yy = y(index_ob(ij), j-1) + ti_s1 * obj_speed * index_ob(ij) * cos(d_o);
+                    xx = x(index_ob(ij), j-1) + ti_s1 * obj_speed * index_ob(ij) * sin(d_o);
+                    x_dd = xx - xc;
+                    y_dd = yy - yc;
+                    d_dd = sqrt(x_dd.^2 + y_dd.^2);
+                    i_dd = x_dd;
+                    i_dd(i_dd > 0) = 1;
+                    i_dd(i_dd <= 0) = 0;
+                    i_dd = 1-i_dd;
+                    di_dd = mod(atan(y_dd./x_dd) + pi*i_dd, 2*pi); 
+                    d_dd(d_dd < FOVlen) = 0;
+                    AA1 = mod(di_dd-ang_temp, 2*pi);
+                    AA1(AA1 < FOVAngle/2) = 0;
+                    AA2 = mod(ang_temp-di_dd, 2*pi);
+                    AA2(AA2 < FOVAngle/2) = 0;
+                    FFF = d_dd + AA1.*AA2;
+                    ti_s2 = find(FFF > 0 ,1) - 1;
+                    t_s(index_ob(ij)) = ti_s2 * 0.7;
+                       
+%                     if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
+%                         d_o2 = mod(ang_temp + pi*2/3, 2*pi);
+%                         d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
+%                     elseif ( mod(d_o1 + pi, 2*pi) < 2*pi && (d_o > mod(ang_temp + pi/6, 2*pi) && d_o1 < mod(d_o1 + pi, 2*pi)))
+%                         d_o2 = mod(ang_temp + pi*2/3, 2*pi);
+%                         d_ed = d_1(index_ct, index_ob)*sin(mod(((ang_temp + pi/6) - d_o1), 2*pi));
+%                     elseif ( mod(ang_temp + pi, 2*pi) > pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(ang_temp - pi/6, 2*pi))))
+%                         d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
+%                         d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
+%                     elseif ( mod(ang_temp + pi, 2*pi) < pi + pi/6 && ((d_o > mod(d_o1 + pi, 2*pi) && d_o <= mod(ang_temp - pi/6, 2*pi))))
+%                         d_o2 = mod(ang_temp - pi*2/3, 2*pi); 
+%                         d_ed = d_1(index_ct, index_ob)*sin(mod((d_o1 - (ang_temp - pi/6)), 2*pi));
+%                     else
+%                         d_o2 = d_o + pi/2;
+%                         d_ed = 100000;
+%                     end
+%                 
+%                     di3 = abs(d_o-d_o2);
+%                 
+%                 
+%                     di2 = 2*pi - (mod(abs(d_o - d_o1), 2*pi));                                % If di2 < pi/2, depart from camera, else move to camera
+%                     if (di2 <= pi/2 || di2 >= pi*3/2)
+%                         if (di2 >= pi*3/2)
+%                             di2 = 2*pi - di2;
+%                         end
+%                         sp_ed = abs(sp_o*cos(di3));
+%                         theta_2 = asin((d_1(index_ct, index_ob(ij)))/FOVlen*sin(di2));
+%                         dd3 = FOVlen/sin(di2)*sin(di2 - theta_2);
+%                         t_ed = abs(d_ed/sp_ed);
+%                         t_ar = abs(dd3/sp_o);
+%                     else
+%                         sp_ed = abs(sp_o*cos(di3));
+%                         sp_ar = abs(sp_o*cos(di2));
+%                         t_ed = abs(d_ed/sp_ed);
+%                         t_ar = abs(d_1(index_ct, index_ob(ij))/sp_ar);
+%                     end
+%                     t_s(index_ob(ij)) = min(t_ed, t_ar);
                 end
                        
                 index_idle_cam = find(situation_Mcam == 0);                           % The index of the idle mobile cameras
@@ -1672,6 +1696,11 @@ for j = 2:length(t)
                 cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, ccc);
                 dis_obj_idlecam_M = sqrt(sum(cor_diff_M.^2, 1));
                 
+                time_ind = dis_obj_idlecam_M/speed_lim;
+                time_ind(time_ind < time_lim) = 0;
+                time_ind(time_ind >= time_lim) = 1;
+                time_ind = 1-time_ind;
+                
                 sp_needed_M = dis_obj_idlecam_M/(t_s(ind_obj_MC)*time_factor);                            % required speeds
                 speed_ind_M = sp_needed_M;
                 speed_ind_M(speed_ind_M <= speed_lim) = 0;
@@ -1687,7 +1716,7 @@ for j = 2:length(t)
                 
                 if (sum(speed_ind_M) ~= 0)
 %                     utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(1-dis_obj_idlecam_M/max(dis_obj_idlecam_M))).*speed_ind_M; 
-                    utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(energy_robnorm_M)).*speed_ind_M.*energy_ind_M;  
+                    utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(energy_robnorm_M)).*speed_ind_M.*energy_ind_M.*time_ind;  
                     idlecam_chosen_M = utility_obj_idlecam_M == max(utility_obj_idlecam_M);
                     idlecam_index_M = index_idle_M(idlecam_chosen_M);                            % The idle camera with the highest utility is chosen
                     idlecam_assigned(idlecam_index_M, 1) = 1;
@@ -2186,7 +2215,8 @@ for j = 2:length(t)
                 dist = sqrt(x_d1^2+y_d1^2);
                 s_x1 = x_d1 < 0;
                 dire = mod(atan(y_d1/x_d1) + pi*s_x1, 2*pi);
-                speed1 = max((dist - 1/2*FOVlen)*factor_speed*2 + obj_speed, 0);              
+%                 speed1 = max((dist - 1/2*FOVlen)*factor_speed*2 + obj_speed * obj_tracked, 0);  
+                speed1 = (dist - 1/2*FOVlen)*factor_speed*2 + obj_speed * obj_tracked;  
                 x1(i, j) = x1(i, j-1) + speed1 * cos(dire);
                 y1(i, j) = y1(i, j-1) + speed1 * sin(dire);
                     
