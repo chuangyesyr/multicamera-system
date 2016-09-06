@@ -1639,7 +1639,9 @@ for j = 2:length(t)
                     count_send_resource(nSC+index_idle_cam1) = count_send_resource(nSC+index_idle_cam1) + 1;
                     cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
                     energy_idlecam = Energy_Left(nSC+index_idle_cam1)/max(Energy_Left(nSC+index_idle_cam1));
-                    
+                    energy_ind1 = energy_idlecam;
+                    energy_ind1(energy_ind1 > 0) = 1;
+                    energy_ind1(energy_ind1 <= 0) = 0;
                     
                     cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
                     dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
@@ -1653,13 +1655,13 @@ for j = 2:length(t)
                     energy_rob = REnergy(index_idle_cam1) - dis_obj_idlecam * Es_rate;
                     energy_robnorm = energy_rob/max(energy_rob);
                     
-                    energy_ind = energy_rob;
-                    energy_ind(energy_ind > 0) = 1;
-                    energy_ind(energy_ind <= 0) = 0;
+                    energy_ind2 = energy_rob;
+                    energy_ind2(energy_ind2 > 0) = 1;
+                    energy_ind2(energy_ind2 <= 0) = 0;
                     
                     if (sum(speed_ind) ~= 0)
 %                         utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(1-dis_obj_idlecam/max(dis_obj_idlecam))).*speed_ind;  
-                        utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(energy_robnorm)).*speed_ind.*energy_ind; 
+                        utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(energy_robnorm)).*speed_ind.*energy_ind1.*energy_ind2; 
                         idlecam_chosen = utility_obj_idlecam == max(utility_obj_idlecam);
                         idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the highest utility is chosen
                         idlecam_assigned(idlecam_index, 1) = 1;
@@ -1703,6 +1705,10 @@ for j = 2:length(t)
                 cor_diff_M = cor_idlecam_M - repmat(cor_obj_M, 1, ccc);
                 dis_obj_idlecam_M = sqrt(sum(cor_diff_M.^2, 1));
                 
+                energy_ind1_M = energy_idlecam_M;
+                energy_ind1_M(energy_ind1_M > 0) = 1;
+                energy_ind1_M(energy_ind1_M <= 0) = 0;
+                
                 time_ind = dis_obj_idlecam_M/speed_lim;
                 time_ind(time_ind < time_lim) = 0;
                 time_ind(time_ind >= time_lim) = 1;
@@ -1717,13 +1723,13 @@ for j = 2:length(t)
                 energy_rob_M = REnergy(index_idle_M) - dis_obj_idlecam_M * Es_rate;
                 energy_robnorm_M = energy_rob_M/max(energy_rob_M);
                 
-                energy_ind_M = energy_rob_M;
-                energy_ind_M(energy_ind_M > 0) = 1;
-                energy_ind_M(energy_ind_M <= 0) = 0;
+                energy_ind2_M = energy_rob_M;
+                energy_ind2_M(energy_ind2_M > 0) = 1;
+                energy_ind2_M(energy_ind2_M <= 0) = 0;
                 
                 if (sum(speed_ind_M) ~= 0)
 %                     utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(1-dis_obj_idlecam_M/max(dis_obj_idlecam_M))).*speed_ind_M; 
-                    utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(energy_robnorm_M)).*speed_ind_M.*energy_ind_M.*time_ind;  
+                    utility_obj_idlecam_M = (W_ME*energy_idlecam_M + W_MD*(energy_robnorm_M)).*speed_ind_M.*energy_ind1_M.*energy_ind2_M.*time_ind;  
                     idlecam_chosen_M = utility_obj_idlecam_M == max(utility_obj_idlecam_M);
                     idlecam_index_M = index_idle_M(idlecam_chosen_M);                            % The idle camera with the highest utility is chosen
                     idlecam_assigned(idlecam_index_M, 1) = 1;
@@ -2351,7 +2357,7 @@ for j = 2:length(t)
 
     if (Mobile_flag == 1)
         Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption;
-        REnergy = REnergy - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate;
+        REnergy = max(REnergy - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate, 0);
 %         Energy_Left(nSC+1:end) = Energy_Left(nSC+1:end) - (sqrt((x1(:, j)-x1(:, j-1)).^2+ (y1(:, j)-y1(:, j-1)).^2))'*Es_rate;
     end
     %     Energy_Left = Energy_Left - a1'*Tracking_Consumption - b1'*Idle_Consumption - ...
