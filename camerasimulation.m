@@ -1012,7 +1012,8 @@ direction_obj = zeros(length(t), nO)+pi/3;
 flag8_temp = 0;
 flag_Energy = 0;
 for j = 2:length(t)
-    if (j == 2994)
+    TTT2 = zeros(nC, nO);
+    if (j == 6885)
         aaaaa = 1;
     end
     Table2_temp = Table2;
@@ -1383,6 +1384,9 @@ for j = 2:length(t)
                     AA2(AA2 < FOVAngle/2) = 0;
                     FFF = d_dd + AA1.*AA2;
                     ti_s2 = find(FFF == 0, 1, 'last');
+                    if (isempty(ti_s2))
+                        ti_s2 = 0.0000001;
+                    end
                     t_s(index_ob(ij)) = ti_s2 * 0.7;
                        
 %                     if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
@@ -1793,6 +1797,7 @@ for j = 2:length(t)
             %             end
             
             Utility_Save = zeros(nC, nO);
+            
             for k = 1:nO
                 Camera_Index = find(Table_temp(:, k) == 1);                                 % The camera that can observe object k
                 
@@ -1902,6 +1907,8 @@ for j = 2:length(t)
                         
                         Max_Index = Camera_Index == Cam(k);
                         Utility_Save(Cam(k), k) = Utility_O(Max_Index);
+                        
+                        TTT2(Cam(k), k) = 1;
                         
                         Table_in(Cam(k), k) = 1;                                      % The loop-th decision make
                     end
@@ -2094,6 +2101,10 @@ for j = 2:length(t)
             
             if (~isempty(Index2) && nc1 > 1)
                 Max_Index = Table2(:, i2) == 1;
+                
+                if (isempty(Max_Index))
+                    Max_Index = find(TTT2(:, i2) == 1);
+                end
                 
                 UEnergy_avg = sum(handles.utilityE(Index2, Table3(2), i2))/nc1;
                 UResolution_avg = sum(handles.utilityR(Index2, Table3(2), i2))/nc1;
@@ -2349,7 +2360,11 @@ for j = 2:length(t)
     handles.Table2 = Table2;
     set(tt2, 'Data', Table2);
     TT1 = Table2(1:nC, 1:nO);
-    Mc_assign = Mc_assign.*(1-Table2(nSC+1:nC, 1:nO));
+    T_temp = Table2(nSC+1:nC, 1:nO);
+    T_temp = sum(T_temp, 2);
+    T_temp(T_temp >= 1) = 1;
+    T_temp = 1-T_temp;
+    Mc_assign = Mc_assign.*repmat(T_temp, 1, nO);
     idlecam_assigned = idlecam_assigned.*(1-sum(Table2(nSC+1:nC, 1:nO), 2));
     
     a1(1:nSC) = zeros(nSC, 1);
