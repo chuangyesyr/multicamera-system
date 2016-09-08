@@ -1912,22 +1912,22 @@ for j = 2:length(t)
                         
                         Table_in(Cam(k), k) = 1;                                      % The loop-th decision make
                     end
-                elseif (~isempty(Camera_Index) && min(Camera_Index) > nSC)
-                    index_Mcam_tracking = find(Table2(:, k) == 1, 1);
-                    index_taking = [];
-                    
-                    for ik = 1:nc
-                        if (index_occupy(Camera_Index(ik) - nSC) == 0 && idlecam_assigned(Camera_Index(ik) - nSC) == 0 && ik ~= index_Mcam_tracking)
-                            index_taking = [index_taking, Camera_Index(ik)];
-                        
-                        end
-                    end
-                    if (~isempty(index_taking))
-                        index_will_tracking = index_taking(Energy_Left(index_taking) == max(Energy_Left(index_taking)));
-                    end
-                    
-                    Table2(index_will_tracking, k) = 1;
-                    Table2(index_Mcam_tracking, k) = 0;
+%                 elseif (~isempty(Camera_Index) && min(Camera_Index) > nSC)
+%                     index_Mcam_tracking = find(Table2(:, k) == 1, 1);
+%                     index_taking = [];
+%                     
+%                     for ik = 1:nc
+%                         if (index_occupy(Camera_Index(ik) - nSC) == 0 && idlecam_assigned(Camera_Index(ik) - nSC) == 0 && ik ~= index_Mcam_tracking)
+%                             index_taking = [index_taking, Camera_Index(ik)];
+%                         
+%                         end
+%                     end
+%                     if (~isempty(index_taking))
+%                         index_will_tracking = index_taking(Energy_Left(index_taking) == max(Energy_Left(index_taking)));
+%                     end
+%                     
+%                     Table2(index_will_tracking, k) = 1;
+%                     Table2(index_Mcam_tracking, k) = 0;
                                        
                 end
             end
@@ -1977,6 +1977,7 @@ for j = 2:length(t)
                             end
                             handles.utility_f(i1, Index1, Table3(2)) = Utility_Save(i1, Index1);
                             Load(i1) = Load(i1) + 1;
+                            Table2(1:nC, Index1) = 0;
                             Table2(i1, Index1) = 1;
                             Table_temp(:, Index1) = zeros(nC, 1);
                         end
@@ -1999,11 +2000,13 @@ for j = 2:length(t)
                             end
                             handles.utility_f(i1, Index1, Table3(2)) = Utility_Save(i1, Index1);
                             Load(i1) = Load(i1) + 1;
+                            Table2(1:nC, Index1) = 0;
                             Table2(i1, Index1) = 1;
                             Table_temp(:, Index1) = zeros(nC, 1);
                         elseif (a(i1) ~= 0 && Energy_Left(i1) < E_Thr)
                             Load(i1) = Load(i1) + length(find(Utility_Save(i1, :) ~= 0));
                             Index1_1 = find(Utility_Save(i1, :) ~= 0);
+                            Table2(1:nC, Index1_1) = 0;
                             Table2(i1, Index1_1) = 1;
                             Table_temp(:, Index1_1) = 0;
                         end
@@ -2053,12 +2056,12 @@ for j = 2:length(t)
 
         
         if (Mobile_flag == 1)
-            for i = 1:nMC
-                index_obj_in_idle = find(Table4(nSC+i, 1:nO) == 1);
-                if (length(index_obj_in_idle) >= 2)
-                    Table2(nSC+i, 1:nO) = handles.Table2(nSC+i, 1:nO);
-                end
-            end
+%             for i = 1:nMC
+%                 index_obj_in_idle = find(Table4(nSC+i, 1:nO) == 1);
+%                 if (length(index_obj_in_idle) >= 2)
+%                     Table2(nSC+i, 1:nO) = handles.Table2(nSC+i, 1:nO);
+%                 end
+%             end
  
             for i = 1:nO
                 index_Mcam_track = find(Table2(nSC+1:nC, i) == 1, 1);
@@ -2068,7 +2071,7 @@ for j = 2:length(t)
                     if (length(index_Mcam_see) >= 1)
                         energy_Mcam_see = Energy_Left(nSC+index_Mcam_see);
                         index_tracking = find(energy_Mcam_see == max(energy_Mcam_see), 1);
-                        Table2(nSC+index_Mcam_track, i) = 0;
+                        Table2(1:nC, i) = 0;
                         Table2(nSC+index_Mcam_see(index_tracking), i) = 1;
                     end
                 else
@@ -2078,6 +2081,7 @@ for j = 2:length(t)
                         if (length(index_Mcam_see) >= 1)
                             energy_Mcam_see = Energy_Left(nSC+index_Mcam_see);
                             index_tracking = find(energy_Mcam_see == max(energy_Mcam_see));
+                            Table2(1:nC, i) = 0;
                             Table2(nSC+index_tracking, i) = 1;
                         end
                     end
@@ -2102,8 +2106,9 @@ for j = 2:length(t)
             if (~isempty(Index2) && nc1 > 1)
                 Max_Index = Table2(:, i2) == 1;
                 
-                if (isempty(Max_Index))
-                    Max_Index = find(TTT2(:, i2) == 1);
+                if (isempty(Max_Index) && Max_Index > 1)
+                    Max_Index
+                    Max_Index = find(Table1(:, i2) == 1,1);                   
                 end
                 
                 UEnergy_avg = sum(handles.utilityE(Index2, Table3(2), i2))/nc1;
@@ -2213,8 +2218,8 @@ for j = 2:length(t)
                         Mc_assign(i, index_obj_assigned) = 0;
                     end
                     if (Table1(nSC+i, index_obj_assigned) == 1)
+                        Table2(1:nC, index_obj_assigned) = 0;
                         Table2(nSC+i, index_obj_assigned) = 1;
-                        Table2(index_cam_tra, index_obj_assigned) = 0;
                         idlecam_assigned(i) = 0;
                         Mc_assign(i, index_obj_assigned) = 0;
                     end
