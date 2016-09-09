@@ -1346,48 +1346,49 @@ for j = 2:length(t)
             
                 index_ob = find(sum(Final_Decision, 1) == 1);                         % The index of the object who triggers the assignment
                 L_o = length(index_ob);                                               % Number of objects that trigger the re-assignment
-                for ij = 1:L_o
+                for ij = 1:L_o                   
                     index_ct = find(Table_Tracking(1:nC, index_ob(ij)) == 1);
-                    d_o1 = angles_a(index_ct, index_ob(ij));            % Direction of object-camera line
-                    d_1(index_ct, index_ob(ij)) = Distance1(index_ct, index_ob(ij));
-                    ang(index_ct, index_ob(ij)) = angles_Diff1(index_ct, index_ob(ij));
+                    if (sum(Mc_assign(:, index_ob(ij)) == 0))
+                        d_o1 = angles_a(index_ct, index_ob(ij));            % Direction of object-camera line
+                        d_1(index_ct, index_ob(ij)) = Distance1(index_ct, index_ob(ij));
+                        ang(index_ct, index_ob(ij)) = angles_Diff1(index_ct, index_ob(ij));
                 
-                    y_o = y(index_ob(ij), j) - y(index_ob(ij), j-1);
-                    x_o = x(index_ob(ij), j) - x(index_ob(ij), j-1);
-                    sp_o = sqrt(x_o^2 + y_o^2);
-                    if(x_o) < 0;
-                        ia = 1;
-                    else
-                        ia = 0;
-                    end
-                    d_o = mod(atan(y_o/x_o) + pi*ia, 2*pi);                          % Direction of object moving
+                        y_o = y(index_ob(ij), j) - y(index_ob(ij), j-1);
+                        x_o = x(index_ob(ij), j) - x(index_ob(ij), j-1);
+                        sp_o = sqrt(x_o^2 + y_o^2);
+                        if(x_o) < 0;
+                            ia = 1;
+                        else
+                            ia = 0;
+                        end
+                        d_o = mod(atan(y_o/x_o) + pi*ia, 2*pi);                          % Direction of object moving
                 
-                    ang_temp = handles.coordinates_camera(3, index_ct);
-                    xc = handles.coordinates_camera(1, index_ct);
-                    yc = handles.coordinates_camera(2, index_ct);
-                    ti_s1 = 1:500;
+                        ang_temp = handles.coordinates_camera(3, index_ct);
+                        xc = handles.coordinates_camera(1, index_ct);
+                        yc = handles.coordinates_camera(2, index_ct);
+                        ti_s1 = 1:500;
                         
-                    yy = y(index_ob(ij), j-1) + ti_s1 * obj_speed(index_ob(ij)) * index_ob(ij) * cos(d_o);
-                    xx = x(index_ob(ij), j-1) + ti_s1 * obj_speed(index_ob(ij)) * index_ob(ij) * sin(d_o);
-                    x_dd = xx - xc;
-                    y_dd = yy - yc;
-                    d_dd = sqrt(x_dd.^2 + y_dd.^2);
-                    i_dd = x_dd;
-                    i_dd(i_dd > 0) = 1;
-                    i_dd(i_dd <= 0) = 0;
-                    i_dd = 1-i_dd;
-                    di_dd = mod(atan(y_dd./x_dd) + pi*i_dd, 2*pi); 
-                    d_dd(d_dd < FOVlen) = 0;
-                    AA1 = mod(di_dd-ang_temp, 2*pi);
-                    AA1(AA1 < FOVAngle/2) = 0;
-                    AA2 = mod(ang_temp-di_dd, 2*pi);
-                    AA2(AA2 < FOVAngle/2) = 0;
-                    FFF = d_dd + AA1.*AA2;
-                    ti_s2 = find(FFF == 0, 1, 'last');
-                    if (isempty(ti_s2))
-                        ti_s2 = 0.0000001;
-                    end
-                    t_s(index_ob(ij)) = ti_s2 * 0.7;
+                        yy = y(index_ob(ij), j-1) + ti_s1 * obj_speed(index_ob(ij)) * index_ob(ij) * cos(d_o);
+                        xx = x(index_ob(ij), j-1) + ti_s1 * obj_speed(index_ob(ij)) * index_ob(ij) * sin(d_o);
+                        x_dd = xx - xc;
+                        y_dd = yy - yc;
+                        d_dd = sqrt(x_dd.^2 + y_dd.^2);
+                        i_dd = x_dd;
+                        i_dd(i_dd > 0) = 1;
+                        i_dd(i_dd <= 0) = 0;
+                        i_dd = 1-i_dd;
+                        di_dd = mod(atan(y_dd./x_dd) + pi*i_dd, 2*pi); 
+                        d_dd(d_dd < FOVlen) = 0;
+                        AA1 = mod(di_dd-ang_temp, 2*pi);
+                        AA1(AA1 < FOVAngle/2) = 0;
+                        AA2 = mod(ang_temp-di_dd, 2*pi);
+                        AA2(AA2 < FOVAngle/2) = 0;
+                        FFF = d_dd + AA1.*AA2;
+                        ti_s2 = find(FFF == 0, 1, 'last');
+                        if (isempty(ti_s2))
+                            ti_s2 = 0.0000001;
+                        end
+                        t_s(index_ob(ij)) = ti_s2 * 0.7;
                        
 %                     if ( mod(d_o1 + pi, 2*pi) > 2*pi && ((d_o > mod(ang_temp + pi/6, 2*pi) && d_o < 2*pi) || (d_o >=0 && d_o <= mod(d_o1 + pi, 2*pi))))
 %                         d_o2 = mod(ang_temp + pi*2/3, 2*pi);
@@ -1426,10 +1427,11 @@ for j = 2:length(t)
 %                         t_ar = abs(d_1(index_ct, index_ob(ij))/sp_ar);
 %                     end
 %                     t_s(index_ob(ij)) = min(t_ed, t_ar);
-                end
-                       
+                        flag7 = 1; 
+                    end
+                end      
                 index_idle_cam = find(situation_Mcam == 0);                           % The index of the idle mobile cameras
-                flag7 = 1;                                                            % Moving our in a short time
+                                                                           % Moving our in a short time
             end 
         end
         
@@ -1630,55 +1632,59 @@ for j = 2:length(t)
                 Num_idlecam = nMC - sum(index_occupy) - sum(idlecam_assigned);
                 
                 i_o = index_ob(i);
-                x_o = cor_obj(1, i_o);
-                y_o = cor_obj(2, i_o);
-                i_tra = find(Table2(1:nSC, i_o) == 1);
-                count_send_resource(i_tra) = count_send_resource(i_tra) + 2;
+                if (sum(Mc_assign(:, index_ob(i))) == 0)
+                    x_o = cor_obj(1, i_o);
+                    y_o = cor_obj(2, i_o);
+                    i_tra = find(Table2(1:nSC, i_o) == 1);
+                    count_send_resource(i_tra) = count_send_resource(i_tra) + 2;
 
-                real_idlecam = ones(nMC, 1) - index_occupy - idlecam_assigned;
+                    real_idlecam = ones(nMC, 1) - index_occupy - idlecam_assigned;
                 
-                sp_needed = [];
-                if (sum(real_idlecam) > 0)
-                    index_idle_cam1 = find(real_idlecam == 1);
-                    count_send_resource(nSC+index_idle_cam1) = count_send_resource(nSC+index_idle_cam1) + 1;
-                    cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
-                    energy_idlecam = Energy_Left(nSC+index_idle_cam1)/max(Energy_Left(nSC+index_idle_cam1));
-                    energy_ind1 = energy_idlecam;
-                    energy_ind1(energy_ind1 > 0) = 1;
-                    energy_ind1(energy_ind1 <= 0) = 0;
+                    sp_needed = [];
+                    if (sum(real_idlecam) > 0)
+                        index_idle_cam1 = find(real_idlecam == 1);
+                        count_send_resource(nSC+index_idle_cam1) = count_send_resource(nSC+index_idle_cam1) + 1;
+                        cor_idlecam = cor_Mcam(1:2, index_idle_cam1);
+                        energy_idlecam = Energy_Left(nSC+index_idle_cam1)/max(Energy_Left(nSC+index_idle_cam1));
+                        energy_ind1 = energy_idlecam;
+                        energy_ind1(energy_ind1 > 0) = 1;
+                        energy_ind1(energy_ind1 <= 0) = 0;
                     
-                    cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
-                    dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
+                        cor_diff = cor_idlecam - repmat(cor_obj(:, i_o), 1, Num_idlecam);
+                        dis_obj_idlecam = sqrt(sum(cor_diff.^2, 1));
                     
-                    sp_needed = dis_obj_idlecam/(t_s(i_o)*time_factor);                            % required speeds
-                    speed_ind = sp_needed;
-                    speed_ind(speed_ind <= speed_lim) = 0;
-                    speed_ind(speed_ind > speed_lim) = 1;
-                    speed_ind = 1 - speed_ind;
+                        sp_needed = dis_obj_idlecam/(t_s(i_o)*time_factor);                            % required speeds
+                        speed_ind = sp_needed;
+                        speed_ind(speed_ind <= speed_lim) = 0;
+                        speed_ind(speed_ind > speed_lim) = 1;
+                        speed_ind = 1 - speed_ind;
                     
-                    energy_rob = REnergy(index_idle_cam1) - dis_obj_idlecam * Es_rate;
-                    energy_robnorm = energy_rob/max(energy_rob);
+                        energy_rob = REnergy(index_idle_cam1) - dis_obj_idlecam * Es_rate;
+                        energy_robnorm = energy_rob/max(energy_rob);
                     
-                    energy_ind2 = energy_rob;
-                    energy_ind2(energy_ind2 > 0) = 1;
-                    energy_ind2(energy_ind2 <= 0) = 0;
+                        energy_ind2 = energy_rob;
+                        energy_ind2(energy_ind2 > 0) = 1;
+                        energy_ind2(energy_ind2 <= 0) = 0;
                     
-                    if (sum(speed_ind) ~= 0)
+                        if (sum(speed_ind) ~= 0)
 %                         utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(1-dis_obj_idlecam/max(dis_obj_idlecam))).*speed_ind;  
-                        utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(energy_robnorm)).*speed_ind.*energy_ind1.*energy_ind2; 
-                        idlecam_chosen = utility_obj_idlecam == max(utility_obj_idlecam);
-                        idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the highest utility is chosen
-                        idlecam_assigned(idlecam_index, 1) = 1;
-                        speed_act(idlecam_index) = sp_needed(idlecam_chosen);
+                            utility_obj_idlecam = (W_ME*energy_idlecam + W_MD*(energy_robnorm)).*speed_ind.*energy_ind1.*energy_ind2; 
+                            idlecam_chosen = utility_obj_idlecam == max(utility_obj_idlecam);
+                            idlecam_index = index_idle_cam1(idlecam_chosen);                            % The idle camera with the highest utility is chosen
+                            idlecam_assigned(idlecam_index, 1) = 1;
+                            speed_act(idlecam_index) = sp_needed(idlecam_chosen);
                     
-                        Mc_assign(idlecam_index, i_o) = 1;
+                            Mc_assign(:, i_o) = 0;
+                            Mc_assign(idlecam_index, 1:nO) = 0;
+                            Mc_assign(idlecam_index, i_o) = 1;
                     
-                        y_d = (y_o-cor_idlecam(2, idlecam_chosen));
-                        x_d = (x_o-cor_idlecam(1, idlecam_chosen));
+                            y_d = (y_o-cor_idlecam(2, idlecam_chosen));
+                            x_d = (x_o-cor_idlecam(1, idlecam_chosen));
                 
-                        s_x = x_d < 0;
+                            s_x = x_d < 0;
                 
-                        direction(idlecam_index) = mod(atan(y_d/x_d) + pi*s_x, 2*pi);
+                            direction(idlecam_index) = mod(atan(y_d/x_d) + pi*s_x, 2*pi);
+                        end
                     end
                 end
             end           
@@ -1739,6 +1745,8 @@ for j = 2:length(t)
                     idlecam_assigned(idlecam_index_M, 1) = 1;
                     speed_act(idlecam_index_M) = max(sp_needed_M(idlecam_chosen_M), speed_lim);
                 
+                    Mc_assign(:, ind_obj_MC) = 0;
+                    Mc_assign(idlecam_index_M, 1:nO) = 0;
                     Mc_assign(idlecam_index_M, ind_obj_MC) = 1;
                     
                     y_d = (cor_obj_M(2)-cor_idlecam_M(2, idlecam_chosen_M));
@@ -2370,7 +2378,7 @@ for j = 2:length(t)
     T_temp(T_temp >= 1) = 1;
     T_temp = 1-T_temp;
     Mc_assign = Mc_assign.*repmat(T_temp, 1, nO);
-    idlecam_assigned = idlecam_assigned.*(1-sum(Table2(nSC+1:nC, 1:nO), 2));
+    idlecam_assigned = sum(Mc_assign, 2);
     
     a1(1:nSC) = zeros(nSC, 1);
     b1(1:nSC) = zeros(nSC, 1);
